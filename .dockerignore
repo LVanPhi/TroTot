@@ -1,0 +1,11 @@
+**/node_modules
+**/bin
+**/obj
+**/.venv
+**/.next
+**/TestResults
+.git
+.env
+apps/web
+apps/worker
+research

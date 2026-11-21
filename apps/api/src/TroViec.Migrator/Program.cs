@@ -10,7 +10,10 @@ try
     switch (command)
     {
         case "migrate":
-            MigrationRunner.Run(connectionString, Path.Combine(RepoRoot.Find(), "db", "migrations"), Console.WriteLine);
+            // Container images set MIGRATIONS_DIR (no repo checkout there); dev runs find db/migrations from the repo root.
+            var scriptsDirectory = Environment.GetEnvironmentVariable("MIGRATIONS_DIR")
+                ?? Path.Combine(RepoRoot.Find(), "db", "migrations");
+            MigrationRunner.Run(connectionString, scriptsDirectory, Console.WriteLine);
             break;
         case "bootstrap-admin":
             await AdminBootstrapper.RunAsync(
