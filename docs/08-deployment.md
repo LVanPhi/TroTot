@@ -67,7 +67,7 @@ services:
       APP_RESEARCH_PASSWORD: ${APP_RESEARCH_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql        # PostgreSQL 18+: đường dẫn volume mới
-    ports: ["5432:5432"]
+    ports: ["${POSTGRES_HOST_PORT:-5432}:5432"]   # đổi cổng host nếu máy đã có PostgreSQL chiếm 5432
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d troviec"]
       interval: 5s
@@ -259,6 +259,7 @@ ASP.NET Core đọc khóa lồng bằng `__` (ví dụ `Jwt__SigningKey`).
 | `TAG` | compose production | Commit SHA của image cần chạy (deploy đặt) |
 | `DOMAIN`, `ACME_EMAIL` | caddy, api, web | Tên miền và email Let's Encrypt |
 | `POSTGRES_PASSWORD`, `APP_*_PASSWORD` | postgres | Mật khẩu superuser và 6 role ứng dụng (`migrator`, `api`, `worker`, `maintenance`, `reporting`, `research`) |
+| `POSTGRES_HOST_PORT` | compose dev | Cổng PostgreSQL trên máy host (mặc định 5432); đổi khi máy đã cài PostgreSQL, sửa `Port` trong `ConnectionStrings__*` theo |
 | `ASPNETCORE_ENVIRONMENT` | api, migrator, maintenance | `Development` / `Production` (OpenAPI, Scalar chỉ bật ở Development) |
 | `ConnectionStrings__Main` | api | Role `app_api` |
 | `ConnectionStrings__Maintenance` | maintenance | Role `app_maintenance` (biến riêng vì api và maintenance đọc chung `.env`) |

@@ -17,7 +17,7 @@ dev-down: ## Tắt hạ tầng dev (giữ dữ liệu)
 	$(COMPOSE) down
 
 migrate: ## Chạy db/migrations bằng TroViec.Migrator
-	@echo "Chưa có — làm ở T0.3"
+	dotnet run --project apps/api/src/TroViec.Migrator -- migrate
 
 api: ## Chạy API (dotnet watch)
 	@echo "Chưa có — làm ở T0.4"

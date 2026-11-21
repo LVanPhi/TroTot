@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TroViec.Migrator/TroViec.Migrator.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TroViec.Migrator.Tests/TroViec.Migrator.Tests.csproj" />
+  </Folder>
+</Solution>
