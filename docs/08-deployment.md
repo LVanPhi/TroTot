@@ -307,8 +307,8 @@ ASP.NET Core đọc khóa lồng bằng `__` (ví dụ `Jwt__SigningKey`).
 | `api` | `dotnet build` (cảnh báo là lỗi) → `dotnet test` (Testcontainers) → `dotnet list package --vulnerable` |
 | `worker` | `uv sync` → `ruff check` → `ruff format --check` → `pytest` → `pip-audit` |
 | `web` | `pnpm install --frozen-lockfile` → `lint` → `typecheck` → `vitest` → `next build` |
-| `contract` | Chạy api với CSDL test → sinh lại `schema.d.ts` → `git diff --exit-code` |
-| `images` | Build 5 image cho `linux/amd64` + `linux/arm64` (buildx; phần arm64 chạy trên runner `ubuntu-24.04-arm`), quét Trivy (High trở lên là lỗi) |
+| `contract` | Chạy api ở chế độ Development (không cần CSDL: `/openapi/v1.json` không truy vấn gì) → sinh lại `schema.d.ts` → `git diff --exit-code` |
+| `images` | Matrix 5 image × 2 kiến trúc, mỗi kiến trúc build trên runner thật (`ubuntu-24.04` cho amd64, `ubuntu-24.04-arm` cho arm64, không dùng QEMU); quét Trivy, lỗ hổng High/Critical **đã có bản vá** là lỗi (`ignore-unfixed`). CI chỉ build và quét; `deploy.yml` mới đẩy lên GHCR. `api`, `migrator`, `maintenance` dùng chung `apps/api/Dockerfile` (chọn bằng `--target`); image migrator đọc migration từ `MIGRATIONS_DIR=/app/db/migrations` |
 
 `.github/workflows/nightly.yml` (hằng đêm): dựng toàn bộ stack bằng Docker Compose với `LLM_FAKE=1` và dữ liệu
 `db/seed/demo` → chạy 4 kịch bản Playwright (T4.2) → OWASP ZAP baseline trên chính stack đó (T4.1). Dự án không

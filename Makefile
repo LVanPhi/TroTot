@@ -36,8 +36,9 @@ test: ## Chạy dotnet test + pytest + vitest
 	cd apps/worker && uv run pytest
 	cd apps/web && pnpm test
 
-lint: ## Kiểm tra định dạng và lint (ruff)
+lint: ## Kiểm tra định dạng và lint (ruff, eslint, tsc)
 	cd apps/worker && uv run ruff format --check . && uv run ruff check .
+	cd apps/web && pnpm lint && pnpm typecheck
 
 gen-api: ## Sinh apps/web/lib/api/schema.d.ts từ /openapi/v1.json (API phải đang chạy; đổi OPENAPI_URL nếu khác cổng)
 	cd apps/web && pnpm gen:api
