@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Scalar.AspNetCore;
 using TroViec.Api.Features.Auth;
+using TroViec.Api.Features.Me;
 using TroViec.Api.Infrastructure.Auth;
 using TroViec.Api.Infrastructure.Config;
 using TroViec.Api.Infrastructure.Db;
@@ -36,11 +37,15 @@ builder.Services
     .AddHealth()
     .AddAuth(builder.Configuration)
     .AddEmail(builder.Configuration)
+    .AddSms()
     .AddValidators()
     .AddCorsForSite(builder.Configuration)
     .AddOpenApi();
 
 var app = builder.Build();
+
+// Fail fast on configuration that must never reach production (e.g. Sms__Provider=console).
+_ = app.Services.GetRequiredService<ISmsSender>();
 
 app.UseForwardedHeaders();
 app.UseExceptionHandler();
@@ -58,6 +63,7 @@ if (app.Environment.IsDevelopment())
 
 app.MapHealth();
 app.MapAuth();
+app.MapMe();
 
 app.Run();
 

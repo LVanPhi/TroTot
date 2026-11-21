@@ -25,6 +25,11 @@ public static class AuthEndpoints
         auth.MapPost("/logout", Session.LogoutAsync);
         auth.MapPost("/password/forgot", PasswordReset.ForgotAsync).Validate<PasswordReset.ForgotRequest>();
         auth.MapPost("/password/reset", PasswordReset.ResetAsync).Validate<PasswordReset.ResetRequest>();
+
+        // Signed-in only, and only about the caller's own account (AGENTS.md rule 11: no permission needed).
+        var phone = app.MapGroup("/api/v1/auth/phone").WithTags("Auth").RequireAuthorization();
+        phone.MapPost("/otp", Phone.SendOtpAsync).Validate<Phone.OtpRequest>();
+        phone.MapPost("/verify", Phone.VerifyAsync).Validate<Phone.VerifyRequest>();
     }
 
     /// <summary>tv_refresh; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth (US-103 AC1).</summary>

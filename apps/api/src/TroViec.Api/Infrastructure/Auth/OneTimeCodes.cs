@@ -46,6 +46,43 @@ public sealed class OneTimeCodes(IConnectionMultiplexer redis)
         return CodeCheck.AttemptsExceeded;
     }
 
+    public static readonly TimeSpan PhoneCodeLifetime = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    /// potp:{userId} hash { phone, h = sha256(code), tries } TTL 5 min. The pending number lives only here until
+    /// it is verified, so nobody can reserve someone else's number in app.users (BR-12, US-104 AC4).
+    /// </summary>
+    public async Task<string> NewPhoneCodeAsync(long userId, string phoneE164)
+    {
+        var code = Secrets.NewSixDigitCode();
+        var db = redis.GetDatabase();
+        var key = PhoneKey(userId);
+        await db.KeyDeleteAsync(key);
+        await db.HashSetAsync(key, [new HashEntry("phone", phoneE164), new HashEntry("h", Secrets.Hash(code)), new HashEntry("tries", 0)]);
+        await db.KeyExpireAsync(key, PhoneCodeLifetime);
+        return code;
+    }
+
+    /// <summary>Valid only for the number the code was sent to; 5 wrong codes cancel it (US-104 AC2).</summary>
+    public async Task<CodeCheck> CheckPhoneCodeAsync(long userId, string phoneE164, string code)
+    {
+        var db = redis.GetDatabase();
+        var key = PhoneKey(userId);
+        var stored = await db.HashGetAsync(key, ["phone", "h"]);
+        if (!stored[0].HasValue || stored[0] != phoneE164) return CodeCheck.Invalid;
+
+        if (Secrets.HashesEqual(stored[1]!, Secrets.Hash(code)))
+        {
+            await db.KeyDeleteAsync(key);
+            return CodeCheck.Valid;
+        }
+
+        var tries = await db.HashIncrementAsync(key, "tries");
+        if (tries < MaxWrongAttempts) return CodeCheck.Invalid;
+        await db.KeyDeleteAsync(key);
+        return CodeCheck.AttemptsExceeded;
+    }
+
     public async Task<string> NewResetTokenAsync(long userId)
     {
         var token = Secrets.NewToken();
@@ -61,4 +98,5 @@ public sealed class OneTimeCodes(IConnectionMultiplexer redis)
     }
 
     private static string EmailKey(long userId) => $"evc:{userId}";
+    private static string PhoneKey(long userId) => $"potp:{userId}";
 }

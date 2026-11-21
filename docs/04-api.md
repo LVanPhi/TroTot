@@ -57,6 +57,7 @@ Lỗi kiểm tra dữ liệu dùng `code = "validation.failed"`, `status = 400`,
 | `auth.code_invalid` | 422 | Mã email/OTP sai hoặc hết hạn | Mã không đúng hoặc đã hết hạn |
 | `auth.code_attempts_exceeded` | 429 | Nhập sai quá số lần | Xin mã mới |
 | `auth.phone_taken` | 409 | Số đã gắn tài khoản khác | Số điện thoại đã được dùng |
+| `phone.sms_unavailable` | 503 | Gửi OTP khi `Sms__Provider=none` (chưa có nhà cung cấp SMS, US-104 AC6) | Hệ thống chưa gửi được SMS; liên hệ quản trị viên để được xác thực số |
 | `auth.refresh_invalid` | 401 | Refresh token sai / hết hạn | Phiên đăng nhập đã hết |
 | `auth.refresh_reused` | 401 | Refresh token cũ bị dùng lại | Phiên bị thu hồi vì lý do an toàn |
 | `scan.input_required` | 422 | Không có chữ lẫn ảnh | Dán nội dung hoặc tải ít nhất một ảnh |
@@ -112,7 +113,7 @@ Lỗi kiểm tra dữ liệu dùng `code = "validation.failed"`, `status = 400`,
 | POST | `/auth/logout` | cookie | Thu hồi họ refresh token → `204` |
 | POST | `/auth/password/forgot` | khách | `{email}` → luôn `204` |
 | POST | `/auth/password/reset` | khách | `{token, newPassword}` → `204`; thu hồi mọi refresh token |
-| POST | `/auth/phone/otp` | đăng nhập | `{phone}` (chấp nhận `0912…` hoặc `+84912…`) → `204`; số chờ xác thực chỉ lưu trong Redis cùng OTP |
+| POST | `/auth/phone/otp` | đăng nhập | `{phone}` (chấp nhận `0912…` hoặc `+84912…`) → `204`; số chờ xác thực chỉ lưu trong Redis cùng OTP; chưa có nhà cung cấp SMS → `503 phone.sms_unavailable` |
 | POST | `/auth/phone/verify` | đăng nhập | `{phone, code}` → `204`; lúc này mới ghi `phone_e164` + `phone_verified_at` (BR-12) |
 
 Access token: JWT HS256, hết hạn 15 phút, claim `sub` (user id), `perm` (danh sách quyền),
