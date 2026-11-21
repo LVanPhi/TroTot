@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /apps/api
+    schedule: { interval: monthly }
+  - package-ecosystem: uv
+    directory: /apps/worker
+    schedule: { interval: monthly }
+  - package-ecosystem: npm
+    directory: /apps/web
+    schedule: { interval: monthly }
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: monthly }
+  - package-ecosystem: docker
+    directories: [/infra/postgres, /apps/api, /apps/worker, /apps/web]
+    schedule: { interval: monthly }

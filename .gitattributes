@@ -1,2 +1,11 @@
 # Giữ LF cho mọi file văn bản: script shell (db/init/00_init.sh) chạy trong container Linux sẽ hỏng nếu bị đổi sang CRLF.
 * text=auto eol=lf
+
+# File nhị phân: không đổi xuống dòng, không diff văn bản
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.pdf binary
+*.ico binary
+*.woff2 binary
