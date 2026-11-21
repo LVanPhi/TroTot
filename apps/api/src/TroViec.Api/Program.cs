@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Scalar.AspNetCore;
+using TroViec.Api.Features.Admin;
 using TroViec.Api.Features.Auth;
 using TroViec.Api.Features.Me;
 using TroViec.Api.Infrastructure.Auth;
@@ -64,6 +65,7 @@ if (app.Environment.IsDevelopment())
 app.MapHealth();
 app.MapAuth();
 app.MapMe();
+app.MapAdminUsers();
 
 app.Run();
 

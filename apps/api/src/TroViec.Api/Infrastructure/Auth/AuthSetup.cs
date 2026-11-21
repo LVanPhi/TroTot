@@ -38,7 +38,7 @@ public static class AuthSetup
                 options.TokenValidationParameters = tokens.ValidationParameters();
                 options.Events = new JwtBearerEvents { OnTokenValidated = RejectStaleVersionAsync };
             });
-        services.AddAuthorization();
+        services.AddAuthorization(options => options.AddPermissionPolicies());
 
         services.AddRateLimiter(options =>
         {
