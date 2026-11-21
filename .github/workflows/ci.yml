@@ -1,0 +1,211 @@
+# CI for every PR and push to main (docs/08-deployment.md, CI/CD).
+# Actions are pinned by commit SHA (docs/07-security.md, Chuỗi cung ứng); Dependabot keeps them current.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_VERSION: "10.0.x"
+  DOTNET_NOLOGO: "1"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  db:
+    name: db (migrations on empty database)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      ConnectionStrings__Migrator: Host=localhost;Port=5432;Database=troviec;Username=app_migrator;Password=ci-migrator
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('apps/api/**/*.csproj') }}
+      - name: Start PostgreSQL (infra/postgres image + db/init)
+        run: |
+          docker build -t troviec-postgres-test:latest -f infra/postgres/Dockerfile .
+          docker run -d --name pg -p 5432:5432 \
+            -e POSTGRES_PASSWORD=ci-superuser -e POSTGRES_DB=troviec \
+            -e APP_MIGRATOR_PASSWORD=ci-migrator -e APP_API_PASSWORD=ci-api -e APP_WORKER_PASSWORD=ci-worker \
+            -e APP_MAINTENANCE_PASSWORD=ci-maintenance -e APP_REPORTING_PASSWORD=ci-reporting \
+            -e APP_RESEARCH_PASSWORD=ci-research \
+            troviec-postgres-test:latest
+          # The init script restarts the server once; wait for the final "ready" message.
+          for i in $(seq 1 60); do
+            [ "$(docker logs pg 2>&1 | grep -c 'ready to accept connections')" -ge 2 ] && exit 0
+            sleep 2
+          done
+          docker logs pg; exit 1
+      - name: Migrate empty database
+        run: dotnet run --project apps/api/src/TroViec.Migrator -- migrate
+      - name: Second run applies nothing
+        run: dotnet run --project apps/api/src/TroViec.Migrator -- migrate | tee out.txt && grep -q "database is up to date" out.txt
+      - name: Migrator tests
+        # Run from apps/api so global.json (Microsoft.Testing.Platform runner) applies.
+        working-directory: apps/api
+        run: dotnet test --project tests/TroViec.Migrator.Tests
+
+  api:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('apps/api/**/*.csproj') }}
+      - name: Build (warnings are errors)
+        run: dotnet build TroViec.slnx -c Release -warnaserror
+      - name: Test (Testcontainers)
+        run: dotnet test --solution TroViec.slnx -c Release --no-build
+      - name: Vulnerable packages
+        # `dotnet list --vulnerable` exits 0 even when it finds something, so check its output.
+        run: |
+          dotnet list TroViec.slnx package --vulnerable --include-transitive | tee vulnerable.txt
+          ! grep -q "has the following vulnerable packages" vulnerable.txt
+
+  worker:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/worker
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: apps/worker/uv.lock
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - name: pytest (testcontainers)
+        run: uv run pytest
+      - name: pip-audit
+        run: uv run pip-audit --skip-editable
+
+  web:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          package_json_file: apps/web/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm audit --prod --audit-level high
+
+  contract:
+    name: contract (schema.d.ts matches the API)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('apps/api/**/*.csproj') }}
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          package_json_file: apps/web/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - name: Start API (Development, no database needed for /openapi)
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          ConnectionStrings__Main: Host=localhost;Database=unused;Username=unused;Password=unused
+          ConnectionStrings__Redis: localhost:1
+          S3__Endpoint: http://localhost:1
+        run: |
+          dotnet build apps/api/src/TroViec.Api -c Release
+          nohup dotnet run --project apps/api/src/TroViec.Api -c Release --no-build --no-launch-profile \
+            --urls http://localhost:8080 > api.log 2>&1 &
+          for i in $(seq 1 60); do curl -fsS http://localhost:8080/openapi/v1.json -o /dev/null && exit 0; sleep 2; done
+          cat api.log; exit 1
+      - name: Regenerate schema.d.ts and compare
+        working-directory: apps/web
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm gen:api
+          git diff --exit-code -- lib/api/schema.d.ts
+
+  images:
+    name: image ${{ matrix.image.name }} (${{ matrix.arch }})
+    needs: [api, worker, web]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+        image:
+          - { name: api, context: ., file: apps/api/Dockerfile, target: api, project: TroViec.Api }
+          - { name: migrator, context: ., file: apps/api/Dockerfile, target: migrator, project: TroViec.Migrator }
+          - { name: maintenance, context: ., file: apps/api/Dockerfile, target: maintenance, project: TroViec.Maintenance }
+          - { name: worker, context: apps/worker, file: apps/worker/Dockerfile, target: "", project: "" }
+          - { name: web, context: apps/web, file: apps/web/Dockerfile, target: "", project: "" }
+        include:
+          - { arch: amd64, runner: ubuntu-24.04 }
+          - { arch: arm64, runner: ubuntu-24.04-arm }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      # Native runner per architecture (no QEMU). Images are only built and scanned here; deploy.yml pushes them.
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: ${{ matrix.image.context }}
+          file: ${{ matrix.image.file }}
+          target: ${{ matrix.image.target }}
+          build-args: PROJECT=${{ matrix.image.project }}
+          platforms: linux/${{ matrix.arch }}
+          load: true
+          tags: troviec-${{ matrix.image.name }}:ci
+          cache-from: type=gha,scope=${{ matrix.image.name }}-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image.name }}-${{ matrix.arch }}
+      - name: Trivy (High and Critical with an available fix fail the build)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: troviec-${{ matrix.image.name }}:ci
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table

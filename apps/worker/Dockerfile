@@ -1,7 +1,9 @@
 # Worker image (consume and serve-embed). Multi-arch: linux/amd64 and linux/arm64.
 FROM python:3.12-slim
 
+# upgrade pulls Debian security fixes newer than the base image (Trivy blocks fixable High CVEs).
 RUN apt-get update \
+ && apt-get upgrade -y \
  && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-vie \
  && rm -rf /var/lib/apt/lists/*
 
