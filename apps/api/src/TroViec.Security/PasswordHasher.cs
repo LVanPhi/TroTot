@@ -3,12 +3,12 @@ using System.Security.Cryptography;
 using System.Text;
 using Konscious.Security.Cryptography;
 
-namespace TroViec.Migrator;
+namespace TroViec.Security;
 
 /// <summary>
 /// Argon2id with OWASP minimum parameters (docs/07-security.md), stored as a PHC string:
 /// $argon2id$v=19$m=19456,t=2,p=1$&lt;salt&gt;$&lt;hash&gt; (unpadded base64).
-/// Moves to the API's shared Auth/PasswordHasher in T1.1.
+/// Shared by the API (sign-up, sign-in, password reset) and the Migrator (bootstrap-admin).
 /// </summary>
 public static class PasswordHasher
 {

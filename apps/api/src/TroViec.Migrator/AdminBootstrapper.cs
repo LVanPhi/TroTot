@@ -1,5 +1,6 @@
 using Dapper;
 using Npgsql;
+using TroViec.Security;
 
 namespace TroViec.Migrator;
 

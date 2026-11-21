@@ -155,6 +155,10 @@ jobs:
           ConnectionStrings__Main: Host=localhost;Database=unused;Username=unused;Password=unused
           ConnectionStrings__Redis: localhost:1
           S3__Endpoint: http://localhost:1
+          # Validated at startup; any 32-byte key works since no token is issued here.
+          Jwt__SigningKey: Y2ktb25seS1zaWduaW5nLWtleS1mb3ItY29udHJhY3Q=
+          Jwt__Issuer: https://ci.invalid
+          Jwt__Audience: https://ci.invalid
         run: |
           dotnet build apps/api/src/TroViec.Api -c Release
           nohup dotnet run --project apps/api/src/TroViec.Api -c Release --no-build --no-launch-profile \

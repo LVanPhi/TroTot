@@ -1,9 +1,12 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Scalar.AspNetCore;
+using TroViec.Api.Features.Auth;
+using TroViec.Api.Infrastructure.Auth;
 using TroViec.Api.Infrastructure.Config;
 using TroViec.Api.Infrastructure.Db;
 using TroViec.Api.Infrastructure.Health;
+using TroViec.Api.Infrastructure.Notifications;
 using TroViec.Api.Infrastructure.Problems;
 
 DotEnv.LoadFromRepoRoot();
@@ -31,6 +34,10 @@ builder.Services
     .AddObjectStorage(builder.Configuration)
     .AddTrustedProxies(builder.Configuration)
     .AddHealth()
+    .AddAuth(builder.Configuration)
+    .AddEmail(builder.Configuration)
+    .AddValidators()
+    .AddCorsForSite(builder.Configuration)
     .AddOpenApi();
 
 var app = builder.Build();
@@ -38,6 +45,10 @@ var app = builder.Build();
 app.UseForwardedHeaders();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+app.UseCors();
+app.UseAuthentication();
+app.UseRateLimiter();
+app.UseAuthorization();
 
 if (app.Environment.IsDevelopment())
 {
@@ -46,6 +57,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapHealth();
+app.MapAuth();
 
 app.Run();
 

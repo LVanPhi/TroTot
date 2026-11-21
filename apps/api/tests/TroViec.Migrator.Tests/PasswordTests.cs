@@ -1,3 +1,4 @@
+using TroViec.Security;
 using Shouldly;
 
 namespace TroViec.Migrator.Tests;
