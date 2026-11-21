@@ -19,8 +19,8 @@ dev-down: ## Tắt hạ tầng dev (giữ dữ liệu)
 migrate: ## Chạy db/migrations bằng TroViec.Migrator
 	dotnet run --project apps/api/src/TroViec.Migrator -- migrate
 
-api: ## Chạy API (dotnet watch)
-	@echo "Chưa có — làm ở T0.4"
+api: ## Chạy API (dotnet watch) ở http://localhost:8080
+	dotnet watch --project apps/api/src/TroViec.Api
 
 worker: ## Chạy worker chấm điểm (consume)
 	@echo "Chưa có — làm ở T0.5"
@@ -32,7 +32,8 @@ web: ## Chạy web (pnpm dev)
 	@echo "Chưa có — làm ở T0.6"
 
 test: ## Chạy dotnet test + pytest + vitest
-	@echo "Chưa có — làm ở T0.4–T0.6"
+	dotnet test --solution apps/api/TroViec.slnx
+	@echo "pytest: thêm ở T0.5; vitest: thêm ở T0.6"
 
 gen-api: ## Sinh apps/web/lib/api/schema.d.ts từ /openapi/v1.json
 	@echo "Chưa có — làm ở T0.6"

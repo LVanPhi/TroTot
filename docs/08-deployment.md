@@ -281,6 +281,7 @@ ASP.NET Core đọc khóa lồng bằng `__` (ví dụ `Jwt__SigningKey`).
 | `Quota__GuestScansPerDay`, `Quota__UserScansPerDay` | api | `5`, `50` |
 | `Campuses__Json` | api | `[{"code":"main","name":"Cơ sở chính","lat":21.05,"lng":105.73}]` |
 | `Cors__AllowedOrigins` | api | `https://{DOMAIN}` |
+| `ForwardedHeaders__KnownNetworks` | api | Mạng được tin là proxy (CIDR, cách nhau dấu phẩy). Dev `127.0.0.1/32,::1/128`; production đặt subnet cố định của mạng Docker nội bộ (Caddy, `web`) |
 | `DATABASE_URL`, `REDIS_URL` | worker | Role `app_worker` |
 | `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET_SCAN_IMAGES`, `S3_BUCKET_LISTING_IMAGES` | worker | Garage, khóa **chỉ đọc** `troviec-worker` |
 | `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` | worker | Nhà cung cấp OpenAI-compatible; để trống = chỉ dùng luật (0 đồng). `LLM_MODEL` phải trùng `<model-id>` của dòng `llm` đang chạy |
