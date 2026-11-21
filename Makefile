@@ -33,7 +33,11 @@ web: ## Chạy web (pnpm dev) ở http://localhost:3000
 
 test: ## Chạy dotnet test + pytest + vitest
 	dotnet test --solution apps/api/TroViec.slnx
+	cd apps/worker && uv run pytest
+	cd apps/web && pnpm test
 
+lint: ## Kiểm tra định dạng và lint (ruff)
+	cd apps/worker && uv run ruff format --check . && uv run ruff check .
 
 gen-api: ## Sinh apps/web/lib/api/schema.d.ts từ /openapi/v1.json (API phải đang chạy; đổi OPENAPI_URL nếu khác cổng)
 	cd apps/web && pnpm gen:api
