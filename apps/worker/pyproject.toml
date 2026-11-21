@@ -1,0 +1,60 @@
+[project]
+name = "troviec-worker"
+version = "0.1.0"
+description = "AI worker: scam-risk screening pipeline and embedding service for Tro & Viec Sach"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "boto3>=1.44.9",
+    "fastapi>=0.165.0",
+    "psycopg[binary,pool]>=3.3.9",
+    "pydantic>=2.14.4",
+    "pydantic-settings>=2.16.3",
+    "redis>=8.1.0",
+    "uvicorn>=0.54.0",
+]
+
+[project.optional-dependencies]
+# Heavy ML stack, installed in the Docker image; local dev adds it with `uv sync --extra ml` when needed (T2.x).
+ml = [
+    "torch>=2.9",
+]
+
+[project.scripts]
+troviec-worker = "troviec_worker.__main__:main"
+
+[build-system]
+requires = ["uv_build>=0.13.8,<0.14.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.2.0",
+    "ruff>=0.17.6",
+    "testcontainers[postgres,redis]>=4.15.0",
+]
+
+# CPU-only torch wheels (amd64 and arm64), much smaller than the CUDA build.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "ANN", "S", "LOG"]
+ignore = ["S101"]  # assert is fine in tests
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ANN", "S"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
