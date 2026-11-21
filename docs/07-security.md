@@ -25,7 +25,8 @@ báo cáo đồ án là hạn chế.
   `$argon2id$v=19$m=19456,t=2,p=1$<salt>$<hash>`; so sánh bằng `CryptographicOperations.FixedTimeEquals`.
   Mật khẩu ≥ 10 ký tự, không nằm trong danh sách 10.000 mật khẩu phổ biến (file nhúng trong API).
 - **Access token**: JWT HS256, khóa `Jwt__SigningKey` ≥ 32 byte ngẫu nhiên, kiểm `iss`, `aud`, `exp`
-  (lệch giờ tối đa 30 s), sống 15 phút. Claim `ver` so với Redis `uver:{userId}`; khóa tài khoản, đổi
+  (lệch giờ tối đa 30 s), sống 15 phút. Claim `ver` so với Redis `uver:{userId}` (tiến trình API vừa tăng `uver` từ chối
+  token cũ ngay; tiến trình khác chậm tối đa 30 s do cache); khóa tài khoản, đổi
   vai trò, đặt lại mật khẩu hoặc xóa tài khoản thì tăng `uver` để mọi token cũ bị từ chối ngay (cache 30 s ở API).
   Đổi vai trò không xóa refresh token: lần refresh kế tiếp phát token mang quyền mới.
 - **Refresh token** (Redis):
@@ -46,6 +47,10 @@ báo cáo đồ án là hạn chế.
   môi trường Production; log in OTP kèm `userId`, không in số điện thoại.
 
 ### Phân quyền
+
+Mỗi mã quyền là một policy cùng tên (`Infrastructure/Auth/Permissions.cs`) yêu cầu claim `perm` tương ứng. Test quét
+`EndpointDataSource` bắt mọi endpoint khai báo quyền tường minh, và ma trận phân quyền trong
+`tests/TroViec.Api.Tests/Admin/AuthorizationMatrixTests.cs` phải có một dòng cho mỗi endpoint.
 
 - Mỗi endpoint khai báo policy theo **quyền** (`RequireAuthorization("listing.moderate")`); policy đọc claim
   `perm`. Endpoint chỉ đụng dữ liệu của chính người gọi (`/me`, `/auth/phone/*`) dùng `RequireAuthorization()`

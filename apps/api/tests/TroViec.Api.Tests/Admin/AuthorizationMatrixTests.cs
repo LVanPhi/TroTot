@@ -1,0 +1,174 @@
+using System.Net;
+using Dapper;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
+using Shouldly;
+using TroViec.Api.Infrastructure.Auth;
+using TroViec.Api.Tests.Auth;
+
+namespace TroViec.Api.Tests.Admin;
+
+/// <summary>
+/// docs/09-testing.md, Ma trận phân quyền. Every endpoint × 6 kinds of caller, expectations read from <see cref="Matrix"/>.
+/// Adding an endpoint without a row here fails <see cref="Matrix_CoversEveryApiEndpoint"/>.
+/// </summary>
+[Collection(nameof(InfraCollection))]
+public sealed class AuthorizationMatrixTests(InfraFixture infra, AuthorizationMatrixTests.Callers6 users)
+    : IClassFixture<AuthorizationMatrixTests.Callers6>
+{
+    // Callers, in column order of the Expect strings.
+    private static readonly string[] Callers = ["guest", "student", "owner", "moderator", "admin", "student_no_phone"];
+
+    /// <summary>
+    /// "ok"  = reached the handler (not rejected by authentication/authorization);
+    /// "401" = auth.unauthenticated; "403" = auth.forbidden. Sample requests never change shared state:
+    /// unknown ids, wrong passwords, invalid bodies.
+    /// </summary>
+    private sealed record Row(string Method, string Route, string Path, object? Body, string Expect);
+
+    private const string Missing = "999999999";
+
+    private static readonly Row[] Matrix =
+    [
+        //                                                                                                      guest student owner moderator admin student_no_phone
+        new("POST", "/api/v1/auth/register", "/api/v1/auth/register", new { }, "ok ok ok ok ok ok"),
+        new("POST", "/api/v1/auth/email/verify", "/api/v1/auth/email/verify", new { }, "ok ok ok ok ok ok"),
+        new("POST", "/api/v1/auth/email/resend", "/api/v1/auth/email/resend", new { }, "ok ok ok ok ok ok"),
+        new("POST", "/api/v1/auth/login", "/api/v1/auth/login", new { }, "ok ok ok ok ok ok"),
+        new("POST", "/api/v1/auth/refresh", "/api/v1/auth/refresh", null, "ok ok ok ok ok ok"),
+        new("POST", "/api/v1/auth/logout", "/api/v1/auth/logout", null, "ok ok ok ok ok ok"),
+        new("POST", "/api/v1/auth/password/forgot", "/api/v1/auth/password/forgot", new { }, "ok ok ok ok ok ok"),
+        new("POST", "/api/v1/auth/password/reset", "/api/v1/auth/password/reset", new { }, "ok ok ok ok ok ok"),
+        new("POST", "/api/v1/auth/phone/otp", "/api/v1/auth/phone/otp", new { phone = "bad" }, "401 ok ok ok ok ok"),
+        new("POST", "/api/v1/auth/phone/verify", "/api/v1/auth/phone/verify", new { phone = "bad", code = "x" }, "401 ok ok ok ok ok"),
+        new("GET", "/api/v1/me/", "/api/v1/me", null, "401 ok ok ok ok ok"),
+        new("PATCH", "/api/v1/me/", "/api/v1/me", new { fullName = "" }, "401 ok ok ok ok ok"),
+        new("DELETE", "/api/v1/me/", "/api/v1/me", new { password = "" }, "401 ok ok ok ok ok"),
+        new("GET", "/api/v1/admin/users/", "/api/v1/admin/users", null, "401 403 403 403 ok 403"),
+        new("POST", "/api/v1/admin/users/{id:long}/roles", $"/api/v1/admin/users/{Missing}/roles", new { roleCode = "student" }, "401 403 403 403 ok 403"),
+        new("DELETE", "/api/v1/admin/users/{id:long}/roles/{roleCode}", $"/api/v1/admin/users/{Missing}/roles/student", null, "401 403 403 403 ok 403"),
+        new("POST", "/api/v1/admin/users/{id:long}/lock", $"/api/v1/admin/users/{Missing}/lock", null, "401 403 403 403 ok 403"),
+        new("POST", "/api/v1/admin/users/{id:long}/unlock", $"/api/v1/admin/users/{Missing}/unlock", null, "401 403 403 403 ok 403"),
+        new("POST", "/api/v1/admin/users/{id:long}/phone", $"/api/v1/admin/users/{Missing}/phone", new { phone = "0912345678" }, "401 403 403 403 ok 403"),
+    ];
+
+    /// <summary>One factory and six signed-in callers shared by every case in this class.</summary>
+    public sealed class Callers6(InfraFixture infra) : IAsyncLifetime
+    {
+        public ApiFactory Factory { get; } = new(infra);
+        public Dictionary<string, string?> Tokens { get; } = [];
+
+        public async ValueTask InitializeAsync()
+        {
+            var client = new AuthClient(Factory.CreateClient(), infra);
+            Tokens["guest"] = null;
+            Tokens["student"] = (await TestUsers.CreateAsync(client, infra, ["student"])).Token;
+            Tokens["owner"] = (await TestUsers.CreateAsync(client, infra, ["owner"])).Token;
+            Tokens["moderator"] = (await TestUsers.CreateAsync(client, infra, ["moderator"])).Token;
+            Tokens["admin"] = (await TestUsers.CreateAsync(client, infra, ["admin"])).Token;
+            Tokens["student_no_phone"] = (await TestUsers.CreateAsync(client, infra, ["student"], phoneVerified: false)).Token;
+        }
+
+        public ValueTask DisposeAsync() => Factory.DisposeAsync();
+    }
+
+    private ApiFactory _factory => users.Factory;
+    private Dictionary<string, string?> _tokens => users.Tokens;
+
+    public static TheoryData<string, string> Cases()
+    {
+        var data = new TheoryData<string, string>();
+        foreach (var row in Matrix)
+            foreach (var caller in Callers)
+                data.Add($"{row.Method} {row.Route}", caller);
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(Cases))]
+    public async Task Endpoint_Caller_GetsExpectedAccess(string endpoint, string caller)
+    {
+        var row = Matrix.Single(r => $"{r.Method} {r.Route}" == endpoint);
+        var expected = row.Expect.Split(' ')[Array.IndexOf(Callers, caller)];
+        var request = new HttpRequestMessage(new HttpMethod(row.Method), row.Path)
+        {
+            Content = row.Body is null ? null : System.Net.Http.Json.JsonContent.Create(row.Body),
+        };
+        request.Headers.Add(ApiFactory.TestIpHeader, $"10.200.{Array.IndexOf(Callers, caller)}.{Random.Shared.Next(1, 255)}");
+        request.Headers.Add("X-Requested-With", "troviec");
+        if (_tokens[caller] is { } token) request.Headers.Authorization = new("Bearer", token);
+
+        var response = await _factory.CreateClient().SendAsync(request, TestContext.Current.CancellationToken);
+        var code = response.Content.Headers.ContentType?.MediaType == "application/problem+json"
+            ? await AuthClient.ProblemCodeAsync(response)
+            : null;
+
+        switch (expected)
+        {
+            case "401":
+                ((response.StatusCode, code)).ShouldBe((HttpStatusCode.Unauthorized, "auth.unauthenticated"));
+                break;
+            case "403":
+                ((response.StatusCode, code)).ShouldBe((HttpStatusCode.Forbidden, "auth.forbidden"));
+                break;
+            default:
+                // Reached the handler: whatever it answers, it is not the authorization layer saying no.
+                code.ShouldNotBe("auth.unauthenticated", $"{endpoint} as {caller}");
+                code.ShouldNotBe("auth.forbidden", $"{endpoint} as {caller}");
+                break;
+        }
+    }
+
+    [Fact]
+    public void Matrix_CoversEveryApiEndpoint()
+    {
+        var mapped = ApiEndpoints().Select(e => $"{e.Method} {e.Route}").Order().ToList();
+
+        mapped.ShouldBe(Matrix.Select(r => $"{r.Method} {r.Route}").Order().ToList(),
+            "add a row to AuthorizationMatrixTests.Matrix for every new endpoint");
+    }
+
+    /// <summary>AGENTS.md rule 11: every endpoint states its access: a permission policy, signed-in only, or anonymous.</summary>
+    [Fact]
+    public void EveryEndpoint_DeclaresAuthorizationExplicitly()
+    {
+        var missing = _factory.Services.GetRequiredService<EndpointDataSource>().Endpoints
+            .OfType<RouteEndpoint>()
+            .Where(e => e.Metadata.GetMetadata<IAllowAnonymous>() is null && e.Metadata.GetMetadata<IAuthorizeData>() is null)
+            .Select(e => e.RoutePattern.RawText)
+            .ToList();
+
+        missing.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void PermissionPolicies_UseOnlyKnownPermissionCodes()
+    {
+        var policies = _factory.Services.GetRequiredService<EndpointDataSource>().Endpoints
+            .SelectMany(e => e.Metadata.GetOrderedMetadata<IAuthorizeData>())
+            .Select(a => a.Policy)
+            .OfType<string>()
+            .Distinct();
+
+        policies.Except(Permissions.All).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task PermissionConstants_MatchDatabaseSeed()
+    {
+        await using var connection = new NpgsqlConnection(infra.ApiConnectionString);
+        var codes = (await connection.QueryAsync<string>("SELECT code FROM app.permissions")).Order().ToList();
+
+        Permissions.All.Order().ShouldBe(codes);
+    }
+
+    private IEnumerable<(string Method, string Route)> ApiEndpoints() =>
+        _factory.Services.GetRequiredService<EndpointDataSource>().Endpoints
+            .OfType<RouteEndpoint>()
+            .Where(e => e.RoutePattern.RawText?.StartsWith("/api/", StringComparison.Ordinal) == true)
+            .SelectMany(e => (e.Metadata.GetMetadata<HttpMethodMetadata>()?.HttpMethods ?? ["*"])
+                .Select(m => (m, e.RoutePattern.RawText!)));
+}

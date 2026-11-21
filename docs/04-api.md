@@ -360,7 +360,7 @@ người đăng tin / chủ hồ sơ) → `403 moderation.conflict_of_interest` 
 
 | Phương thức | Đường dẫn | Quyền | Mô tả |
 |---|---|---|---|
-| GET | `/admin/users?q=&role=` | `user.manage` | Tìm theo email/họ tên (không trả tài khoản `system`) |
+| GET | `/admin/users?q=&role=&page=&pageSize=` | `user.manage` | Tìm theo email/họ tên, lọc vai trò, phân trang (không trả tài khoản `system`); `{id, email, fullName, phone, status, emailVerified, phoneVerified, createdAt, roles}`. Thao tác lên `system`, tài khoản đã ẩn danh hóa hoặc id không tồn tại → `404 resource.not_found` |
 | POST | `/admin/users/{id}/roles` | `user.manage` | `{roleCode}` → `204`; tăng `ver` |
 | DELETE | `/admin/users/{id}/roles/{roleCode}` | `user.manage` | → `204`; tăng `ver`; không tự thu hồi `admin` của mình |
 | POST | `/admin/users/{id}/lock` / `unlock` | `user.manage` | Khóa thì thu hồi mọi refresh token và tăng `ver`; không tự khóa mình (`admin.cannot_lock_self`) |
