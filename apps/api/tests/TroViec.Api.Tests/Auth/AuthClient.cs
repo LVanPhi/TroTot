@@ -32,6 +32,22 @@ public sealed partial class AuthClient(HttpClient http, InfraFixture infra)
         return http.SendAsync(request);
     }
 
+    /// <summary>Authenticated call with a bearer token (JSON body optional).</summary>
+    public Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, string accessToken, object? body = null)
+    {
+        var request = new HttpRequestMessage(method, path) { Content = body is null ? null : JsonContent.Create(body) };
+        request.Headers.Add(ApiFactory.TestIpHeader, Ip);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        return http.SendAsync(request);
+    }
+
+    /// <summary>Registers, verifies and signs in; returns the access token and email.</summary>
+    public async Task<(string Token, string Email)> SignedInAsync(string accountType = "student", string? email = null)
+    {
+        email = await RegisterVerifiedAsync(email, accountType);
+        return ((await LoginAsync(email)).AccessToken, email);
+    }
+
     public Task<HttpResponseMessage> RegisterAsync(string email, string accountType = "student", string password = Password) =>
         PostAsync("/api/v1/auth/register", new { email, password, fullName = "Nguyễn Văn A", accountType });
 

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -21,6 +22,11 @@ public sealed class ApiFactory(InfraFixture infra, string environment = "Develop
 
     /// <summary>Test-only endpoint: 200 with the user id when the bearer token is accepted, 401 otherwise.</summary>
     public const string WhoAmIPath = "/test/whoami";
+
+    /// <summary>When true, SMS codes are captured in <see cref="Sms"/> instead of going to the console sender.</summary>
+    public bool CaptureSms { get; init; } = true;
+
+    public CapturingSmsSender Sms { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -47,12 +53,15 @@ public sealed class ApiFactory(InfraFixture infra, string environment = "Develop
                 ["Smtp:User"] = "",
                 ["Smtp:From"] = "Tro & Viec Sach <no-reply@test.troviec>",
                 ["Cors:AllowedOrigins"] = SiteUrl,
+                ["Sms:Provider"] = "console",
             };
             foreach (var (key, value) in overrides ?? new Dictionary<string, string?>())
                 settings[key] = value;
             config.AddInMemoryCollection(settings);
         });
         builder.ConfigureServices(services => services.AddSingleton<IStartupFilter, TestHooks>());
+        if (CaptureSms)
+            builder.ConfigureTestServices(services => services.AddSingleton<TroViec.Api.Infrastructure.Notifications.ISmsSender>(Sms));
     }
 
     private sealed class TestHooks : IStartupFilter

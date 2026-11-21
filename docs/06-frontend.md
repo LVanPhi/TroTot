@@ -55,7 +55,7 @@ apps/web/
 | `/tin/[listingId]` | mọi người (tin công khai) | Ảnh, giá, bản đồ, tiện nghi, nhãn "Đã xác minh đến dd/MM/yyyy", liên hệ (khi đăng nhập), đánh giá, nút Lưu / Báo cáo | `/listings/{id}` |
 | `/cach-cham-diem` | mọi người | Giải thích 4 tín hiệu, danh sách tiêu chí và căn cứ | `/meta/criteria` |
 | `/dang-nhap`, `/dang-ky`, `/xac-thuc-email` … | khách | Form xác thực | `/auth/*` |
-| `/toi` | đăng nhập | Thông tin tài khoản, xác thực số điện thoại, việc còn thiếu để đăng tin (`posting.missing`), xóa tài khoản | `/me`, `/auth/phone/*` |
+| `/toi` | đăng nhập | Thông tin tài khoản, xác thực số điện thoại (gặp `503 phone.sms_unavailable` thì hiện hướng dẫn liên hệ quản trị viên thay cho ô nhập mã), việc còn thiếu để đăng tin (`posting.missing`), xóa tài khoản | `/me`, `/auth/phone/*` |
 | `/toi/kiem-tra` | đăng nhập | Lịch sử Kiểm tra tin 30 ngày | `/me/scans` |
 | `/toi/tin-da-luu` | `listing.save` | Tin đã lưu | `/me/saved-listings` |
 | `/toi/tin-cua-toi` | `listing.create` | Tin của tôi theo trạng thái, nút gửi duyệt / gia hạn / gỡ | `/me/listings` |

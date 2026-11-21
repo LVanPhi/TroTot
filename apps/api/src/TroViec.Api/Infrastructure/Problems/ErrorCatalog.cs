@@ -24,6 +24,7 @@ public static class ErrorCatalog
         ["auth.code_invalid"] = new(422, "Mã không đúng hoặc đã hết hạn"),
         ["auth.code_attempts_exceeded"] = new(429, "Xin mã mới"),
         ["auth.phone_taken"] = new(409, "Số điện thoại đã được dùng"),
+        ["phone.sms_unavailable"] = new(503, "Hệ thống chưa gửi được SMS; liên hệ quản trị viên để được xác thực số"),
         ["auth.refresh_invalid"] = new(401, "Phiên đăng nhập đã hết"),
         ["auth.refresh_reused"] = new(401, "Phiên bị thu hồi vì lý do an toàn"),
         ["scan.input_required"] = new(422, "Dán nội dung hoặc tải ít nhất một ảnh"),
