@@ -10,6 +10,7 @@ using TroViec.Api.Infrastructure.Db;
 using TroViec.Api.Infrastructure.Health;
 using TroViec.Api.Infrastructure.Notifications;
 using TroViec.Api.Infrastructure.Problems;
+using TroViec.Api.Infrastructure.Storage;
 
 DotEnv.LoadFromRepoRoot();
 var builder = WebApplication.CreateBuilder(args);
@@ -34,6 +35,7 @@ builder.Services
     .AddDatabase(builder.Configuration)
     .AddRedis(builder.Configuration)
     .AddObjectStorage(builder.Configuration)
+    .AddStorage(builder.Configuration)
     .AddTrustedProxies(builder.Configuration)
     .AddHealth()
     .AddAuth(builder.Configuration)

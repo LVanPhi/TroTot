@@ -73,6 +73,10 @@ Sơ đồ ERD 13 bảng lõi có trong đề cương; muốn sinh ERD đầy đ�
 | `VECTOR(n)` | `Pgvector.Vector` | `list[float]` / numpy | không lộ ra API |
 | `BYTEA` băm | `byte[]` | `bytes` | không lộ ra API |
 
+`sha256` của `listing_images` và `scan_images` là SHA-256 của **tệp gốc người dùng tải lên** (không phải ảnh WebP đã
+mã hóa lại): không đổi khi nâng cấp bộ mã hóa, và đúng nghĩa "tải lại cùng một tệp" cho `image.duplicate`.
+
+
 Quy tắc với Dapper:
 
 - Bật `DefaultTypeMap.MatchNamesWithUnderscores = true` (cột `monthly_rent_vnd` → thuộc tính `MonthlyRentVnd`).

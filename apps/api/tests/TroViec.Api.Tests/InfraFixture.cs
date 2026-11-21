@@ -92,13 +92,18 @@ public sealed class InfraFixture : IAsyncLifetime
         if (_mailpit is not null) await _mailpit.DisposeAsync();
     }
 
-    /// <summary>Same steps as infra/garage/init.sh, reduced to what the health check needs: layout + one key.</summary>
+    /// <summary>Same steps as infra/garage/init.sh: layout, the app key and the three buckets it can read and write.</summary>
     private async Task InitGarageAsync()
     {
         var nodeId = (await GarageAsync("node", "id", "-q")).Trim().Split('@')[0];
         await GarageAsync("layout", "assign", "-z", "dc1", "-c", "1G", nodeId);
         await GarageAsync("layout", "apply", "--version", "1");
         await GarageAsync("key", "create", "troviec-app");
+        foreach (var bucket in new[] { "listing-images", "scan-images", "owner-documents" })
+        {
+            await GarageAsync("bucket", "create", bucket);
+            await GarageAsync("bucket", "allow", "--read", "--write", bucket, "--key", "troviec-app");
+        }
         var info = await GarageAsync("key", "info", "--show-secret", "troviec-app");
         S3AccessKey = ValueAfter(info, "Key ID");
         S3SecretKey = ValueAfter(info, "Secret key");
