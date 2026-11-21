@@ -3,6 +3,7 @@
     <Project Path="src/TroViec.Api/TroViec.Api.csproj" />
     <Project Path="src/TroViec.Maintenance/TroViec.Maintenance.csproj" />
     <Project Path="src/TroViec.Migrator/TroViec.Migrator.csproj" />
+    <Project Path="src/TroViec.Security/TroViec.Security.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/TroViec.Api.Tests/TroViec.Api.Tests.csproj" />

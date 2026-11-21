@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace TroViec.Migrator;
+namespace TroViec.Security;
 
 /// <summary>US-101 AC4: at least 10 characters and not among the 10,000 most common passwords.</summary>
 public static class PasswordPolicy

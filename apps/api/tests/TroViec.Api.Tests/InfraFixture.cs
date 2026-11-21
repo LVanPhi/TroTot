@@ -10,7 +10,7 @@ namespace TroViec.Api.Tests;
 
 /// <summary>
 /// Real dependencies for API tests: PostgreSQL from infra/postgres/Dockerfile migrated by TroViec.Migrator,
-/// Redis 8, and a one-node Garage with an initialised layout and an access key.
+/// Redis 8, a one-node Garage with an initialised layout and an access key, and Mailpit (fake SMTP with an HTTP API).
 /// </summary>
 public sealed class InfraFixture : IAsyncLifetime
 {
@@ -20,12 +20,16 @@ public sealed class InfraFixture : IAsyncLifetime
     private PostgreSqlContainer? _postgres;
     private RedisContainer? _redis;
     private IContainer? _garage;
+    private IContainer? _mailpit;
 
     public string ApiConnectionString { get; private set; } = "";
     public string RedisConnectionString { get; private set; } = "";
     public string S3Endpoint { get; private set; } = "";
     public string S3AccessKey { get; private set; } = "";
     public string S3SecretKey { get; private set; } = "";
+    public string SmtpHost { get; private set; } = "";
+    public int SmtpPort { get; private set; }
+    public Uri MailpitApi { get; private set; } = new("http://localhost");
 
     public async ValueTask InitializeAsync()
     {
@@ -56,8 +60,16 @@ public sealed class InfraFixture : IAsyncLifetime
             .WithPortBinding(3900, assignRandomHostPort: true)
             // The image has no shell, so shell-based port waits never finish; GarageAsync retries until the daemon answers.
             .Build();
+        _mailpit = new ContainerBuilder("axllent/mailpit:v1.33.1")
+            .WithPortBinding(1025, assignRandomHostPort: true)
+            .WithPortBinding(8025, assignRandomHostPort: true)
+            .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r => r.ForPort(8025).ForPath("/livez")))
+            .Build();
 
-        await Task.WhenAll(_postgres.StartAsync(), _redis.StartAsync(), _garage.StartAsync());
+        await Task.WhenAll(_postgres.StartAsync(), _redis.StartAsync(), _garage.StartAsync(), _mailpit.StartAsync());
+        SmtpHost = _mailpit.Hostname;
+        SmtpPort = _mailpit.GetMappedPublicPort(1025);
+        MailpitApi = new Uri($"http://{_mailpit.Hostname}:{_mailpit.GetMappedPublicPort(8025)}/");
 
         var admin = new NpgsqlConnectionStringBuilder(_postgres.GetConnectionString());
         MigrationRunner.Run(
@@ -77,6 +89,7 @@ public sealed class InfraFixture : IAsyncLifetime
         if (_postgres is not null) await _postgres.DisposeAsync();
         if (_redis is not null) await _redis.DisposeAsync();
         if (_garage is not null) await _garage.DisposeAsync();
+        if (_mailpit is not null) await _mailpit.DisposeAsync();
     }
 
     /// <summary>Same steps as infra/garage/init.sh, reduced to what the health check needs: layout + one key.</summary>

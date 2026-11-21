@@ -268,6 +268,7 @@ ASP.NET Core đọc khóa lồng bằng `__` (ví dụ `Jwt__SigningKey`).
 | `Jwt__SigningKey`, `Jwt__Issuer`, `Jwt__Audience` | api | Khóa HS256 ≥ 32 byte (base64), `https://{DOMAIN}` |
 | `Jwt__AccessTokenMinutes`, `Jwt__RefreshTokenDays` | api | `15`, `30` |
 | `Auth__StudentEmailDomains` | api | Danh sách tên miền email trường, cách nhau dấu phẩy |
+| `App__SiteUrl` | api | Gốc URL của web cho link trong email (đặt lại mật khẩu): `https://{DOMAIN}` |
 | `GARAGE_RPC_SECRET` | garage | Bí mật RPC (`openssl rand -hex 32`), thay cho `rpc_secret` trong `garage.toml` |
 | `S3__Endpoint`, `S3__Region`, `S3__AccessKey`, `S3__SecretKey` | api, maintenance | Garage (`http://garage:3900`, region `garage`), khóa `troviec-app` |
 | `S3__BucketListingImages`, `S3__BucketScanImages`, `S3__BucketOwnerDocuments` | api, maintenance | Tên bucket |

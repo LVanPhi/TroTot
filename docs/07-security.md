@@ -33,6 +33,7 @@ báo cáo đồ án là hạn chế.
     tập `rtf:{familyId}` chứa các băm thuộc họ.
   - Làm mới: `GETDEL rt:{hash}` (nguyên tử). Có → tạo token mới cùng họ, ghi bia mộ `rtu:{hash}` (TTL 30 ngày).
     Không có nhưng có bia mộ → **token bị dùng lại**: xóa cả họ, trả `auth.refresh_reused`.
+  - Tập `rtusr:{userId}` chứa các `familyId` của người dùng, để "xóa mọi họ" không phải quét Redis.
   - Đăng xuất: xóa cả họ. Đặt lại mật khẩu, khóa tài khoản, xóa tài khoản: xóa mọi họ của người dùng.
 - **Cookie** `tv_refresh`: `HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth`.
 - **CSRF**: chỉ hai endpoint dùng cookie (`/auth/refresh`, `/auth/logout`); ngoài SameSite=Strict còn bắt

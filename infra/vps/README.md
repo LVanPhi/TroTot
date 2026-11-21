@@ -100,7 +100,7 @@ Giá trị bắt buộc khác với dev:
 | `S3__Endpoint`, `S3_ENDPOINT` | `http://garage:3900` |
 | `S3__PublicMediaBaseUrl` | `https://<domain>/media/listing-images` |
 | `Embed__BaseUrl` | `http://worker-embed:8001` |
-| `Cors__AllowedOrigins`, `Jwt__Issuer`, `Jwt__Audience` | `https://<domain>` |
+| `Cors__AllowedOrigins`, `Jwt__Issuer`, `Jwt__Audience`, `App__SiteUrl` | `https://<domain>` |
 | `NEXT_PUBLIC_API_BASE_URL` | để trống (cùng origin qua Caddy) |
 | `Sms__Provider` | `none` |
 | `Smtp__*` | Brevo SMTP (`smtp-relay.brevo.com:587`) |
