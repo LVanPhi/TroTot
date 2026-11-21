@@ -4,10 +4,14 @@ using Scalar.AspNetCore;
 using TroViec.Api.Features.Admin;
 using TroViec.Api.Features.Auth;
 using TroViec.Api.Features.Me;
+using TroViec.Api.Features.Meta;
+using TroViec.Api.Features.Scans;
 using TroViec.Api.Infrastructure.Auth;
 using TroViec.Api.Infrastructure.Config;
 using TroViec.Api.Infrastructure.Db;
 using TroViec.Api.Infrastructure.Health;
+using TroViec.Api.Infrastructure.Messaging;
+using TroViec.Api.Infrastructure.RateLimiting;
 using TroViec.Api.Infrastructure.Notifications;
 using TroViec.Api.Infrastructure.Problems;
 using TroViec.Api.Infrastructure.Storage;
@@ -36,6 +40,7 @@ builder.Services
     .AddRedis(builder.Configuration)
     .AddObjectStorage(builder.Configuration)
     .AddStorage(builder.Configuration)
+    .AddScanServices(builder.Configuration)
     .AddTrustedProxies(builder.Configuration)
     .AddHealth()
     .AddAuth(builder.Configuration)
@@ -76,6 +81,8 @@ app.MapHealth();
 app.MapAuth();
 app.MapMe();
 app.MapAdminUsers();
+app.MapScans();
+app.MapMeta();
 
 app.Run();
 

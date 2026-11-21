@@ -8,11 +8,15 @@ public sealed class ProblemException(
     string? detail = null,
     IReadOnlyDictionary<string, string[]>? errors = null,
     IReadOnlyDictionary<string, object?>? extensions = null,
-    Exception? inner = null)
+    Exception? inner = null,
+    IReadOnlyDictionary<string, string>? headers = null)
     : Exception(code, inner)
 {
     public string Code { get; } = code;
     public string? Detail { get; } = detail;
     public IReadOnlyDictionary<string, string[]>? Errors { get; } = errors;
     public IReadOnlyDictionary<string, object?>? Extensions { get; } = extensions;
+
+    /// <summary>Response headers to send with the problem (e.g. Retry-After on 429).</summary>
+    public IReadOnlyDictionary<string, string>? Headers { get; } = headers;
 }

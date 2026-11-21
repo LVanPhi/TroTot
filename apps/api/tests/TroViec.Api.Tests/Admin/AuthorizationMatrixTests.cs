@@ -53,6 +53,17 @@ public sealed class AuthorizationMatrixTests(InfraFixture infra, AuthorizationMa
         new("POST", "/api/v1/admin/users/{id:long}/lock", $"/api/v1/admin/users/{Missing}/lock", null, "401 403 403 403 ok 403"),
         new("POST", "/api/v1/admin/users/{id:long}/unlock", $"/api/v1/admin/users/{Missing}/unlock", null, "401 403 403 403 ok 403"),
         new("POST", "/api/v1/admin/users/{id:long}/phone", $"/api/v1/admin/users/{Missing}/phone", new { phone = "0912345678" }, "401 403 403 403 ok 403"),
+        new("POST", "/api/v1/scans/", "/api/v1/scans", new { }, "ok ok ok ok ok ok"),
+        new("GET", "/api/v1/scans/quota", "/api/v1/scans/quota", null, "ok ok ok ok ok ok"),
+        new("GET", "/api/v1/scans/{scanId:guid}", $"/api/v1/scans/{Guid.Empty}", null, "ok ok ok ok ok ok"),
+        new("POST", "/api/v1/scans/{scanId:guid}/reports", $"/api/v1/scans/{Guid.Empty}/reports", new { category = "scam" }, "401 ok 403 ok ok ok"),
+        new("GET", "/api/v1/me/scans", "/api/v1/me/scans", null, "401 ok ok ok ok ok"),
+        new("GET", "/api/v1/meta/provinces", "/api/v1/meta/provinces", null, "ok ok ok ok ok ok"),
+        new("GET", "/api/v1/meta/provinces/{code}/communes", "/api/v1/meta/provinces/90/communes", null, "ok ok ok ok ok ok"),
+        new("GET", "/api/v1/meta/communes", "/api/v1/meta/communes?q=mau", null, "ok ok ok ok ok ok"),
+        new("GET", "/api/v1/meta/amenities", "/api/v1/meta/amenities", null, "ok ok ok ok ok ok"),
+        new("GET", "/api/v1/meta/criteria", "/api/v1/meta/criteria", null, "ok ok ok ok ok ok"),
+        new("GET", "/api/v1/meta/campuses", "/api/v1/meta/campuses", null, "ok ok ok ok ok ok"),
     ];
 
     /// <summary>One factory and six signed-in callers shared by every case in this class.</summary>

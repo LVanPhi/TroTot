@@ -4,6 +4,44 @@
  */
 
 export interface paths {
+    "/api/v1/me/scans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    page?: number | string;
+                    pageSize?: number | string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfMyScanItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/register": {
         parameters: {
             query?: never;
@@ -673,6 +711,372 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/scans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": components["schemas"]["IFormFile"];
+                };
+            };
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CreateScanResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scans/quota": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ScanEndpointsQuotaResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scans/{scanId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    scanId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GetScanResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scans/{scanId}/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    scanId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ScanEndpointsReportRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ScanEndpointsReportResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/meta/provinces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MetaEndpointsProvince"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/meta/provinces/{code}/communes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    code: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MetaEndpointsCommune"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/meta/communes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    q?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MetaEndpointsCommune"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/meta/amenities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MetaEndpointsAmenity"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/meta/criteria": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MetaEndpointsCriterion"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/meta/campuses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MetaEndpointsCampus"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -696,6 +1100,83 @@ export interface components {
             createdAt: string;
             roles: string[];
         };
+        CreateScanResponse: {
+            /** Format: uuid */
+            scanId: string;
+            status: string;
+        };
+        GetScanAssessment: {
+            /** Format: int32 */
+            score: number | string;
+            riskLevel: string;
+            signals: components["schemas"]["GetScanSignals"];
+            flags: components["schemas"]["GetScanFlag"][];
+            imageMatches: components["schemas"]["GetScanImageMatch"][];
+            price: null | components["schemas"]["GetScanPrice"];
+            community: components["schemas"]["GetScanCommunityItem"][];
+        };
+        GetScanCommunityItem: {
+            kind: string;
+            hint: string;
+            /** Format: int32 */
+            confirmedReports: number | string;
+            /** Format: date-time */
+            lastConfirmedAt: null | string;
+        };
+        GetScanFlag: {
+            code: string;
+            name: string;
+            evidence: string;
+            legalBasis: null | string;
+        };
+        GetScanImageMatch: {
+            /** Format: int32 */
+            sourceImageNo: number | string;
+            /** Format: int32 */
+            otherListingCount: number | string;
+            /** Format: int32 */
+            removedListingCount: number | string;
+            differentLocation: boolean;
+            publicListing: null | components["schemas"]["GetScanPublicListing"];
+        };
+        GetScanPrice: {
+            /** Format: int32 */
+            rentVnd: number | string;
+            rentSource: string;
+            /** Format: int32 */
+            medianVnd: number | string;
+            /** Format: int32 */
+            sampleSize: number | string;
+        };
+        GetScanPublicListing: {
+            /** Format: uuid */
+            listingId: string;
+            title: string;
+        };
+        GetScanResponse: {
+            /** Format: uuid */
+            scanId: string;
+            status: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            completedAt: null | string;
+            errorCode: null | string;
+            assessment: null | components["schemas"]["GetScanAssessment"];
+            canReport: boolean;
+        };
+        GetScanSignals: {
+            /** Format: double */
+            text: null | number | string;
+            /** Format: double */
+            image: null | number | string;
+            /** Format: double */
+            price: null | number | string;
+            /** Format: double */
+            community: null | number | string;
+        };
+        /** Format: binary */
+        IFormFile: string;
         LoginRequest: {
             email: string;
             password: string;
@@ -721,6 +1202,44 @@ export interface components {
             roles: string[];
             permissions: string[];
             posting: components["schemas"]["PostingStatus"];
+        };
+        MetaEndpointsAmenity: {
+            code: string;
+            name: string;
+        };
+        MetaEndpointsCampus: {
+            code: string;
+            name: string;
+            /** Format: double */
+            lat: number | string;
+            /** Format: double */
+            lng: number | string;
+        };
+        MetaEndpointsCommune: {
+            code: string;
+            name: string;
+            provinceCode: string;
+            provinceName: string;
+        };
+        MetaEndpointsCriterion: {
+            code: string;
+            name: string;
+            guidance: string;
+            scope: string;
+            legalBasis: null | string;
+        };
+        MetaEndpointsProvince: {
+            code: string;
+            name: string;
+        };
+        PagedOfMyScanItem: {
+            items: components["schemas"]["ScanEndpointsMyScanItem"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int64 */
+            total: number | string;
         };
         PagedOfUserItem: {
             items: components["schemas"]["AdminUsersUserItem"][];
@@ -757,6 +1276,34 @@ export interface components {
         };
         ResendEmailRequest: {
             email: string;
+        };
+        ScanEndpointsMyScanItem: {
+            /** Format: uuid */
+            scanId: string;
+            status: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            completedAt: null | string;
+            /** Format: int32 */
+            score: null | number | string;
+            riskLevel: null | string;
+        };
+        ScanEndpointsQuotaResponse: {
+            /** Format: int32 */
+            limit: number | string;
+            /** Format: int32 */
+            remaining: number | string;
+            /** Format: date-time */
+            resetAt: string;
+        };
+        ScanEndpointsReportRequest: {
+            category: string;
+            description: null | string;
+        };
+        ScanEndpointsReportResponse: {
+            /** Format: int64 */
+            id: number | string;
         };
         SessionRefreshResponse: {
             accessToken: string;

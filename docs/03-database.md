@@ -351,7 +351,8 @@ Tin khớp không công khai chỉ được đếm, không lộ tiêu đề hay 
 ### Outbox relay
 
 ```sql
--- trong một transaction, mỗi 500 ms hoặc khi có NOTIFY troviec_outbox (API tự gửi sau commit, không dùng trigger)
+-- trong một transaction, mỗi 500 ms hoặc ngay khi request vừa commit đánh thức relay (tín hiệu trong cùng tiến trình API;
+-- relay chạy trong api nên không cần LISTEN/NOTIFY)
 SELECT id, scan_id, listing_id FROM app.outbox_messages
 WHERE published_at IS NULL
 ORDER BY id
