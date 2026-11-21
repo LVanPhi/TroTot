@@ -1,0 +1,6 @@
+code,name,unit_level,parent_code
+90,Tỉnh Mẫu Một,province,
+91,Tỉnh Mẫu Hai,province,
+90001,Phường Mẫu A,commune,90
+90002,Xã Mẫu B,commune,90
+91001,"Phường Mẫu C, khu 1",commune,91
