@@ -20,8 +20,9 @@ public static class AuthEndpoints
         auth.MapPost("/email/verify", VerifyEmail.HandleAsync).Validate<VerifyEmail.Request>();
         auth.MapPost("/email/resend", ResendEmail.HandleAsync).Validate<ResendEmail.Request>();
         auth.MapPost("/login", Login.HandleAsync).Validate<Login.Request>()
-            .RequireRateLimiting(AuthSetup.LoginLimit);
-        auth.MapPost("/refresh", Session.RefreshAsync);
+            .RequireRateLimiting(AuthSetup.LoginLimit)
+            .Produces<Login.Response>();
+        auth.MapPost("/refresh", Session.RefreshAsync).Produces<Session.RefreshResponse>();
         auth.MapPost("/logout", Session.LogoutAsync);
         auth.MapPost("/password/forgot", PasswordReset.ForgotAsync).Validate<PasswordReset.ForgotRequest>();
         auth.MapPost("/password/reset", PasswordReset.ResetAsync).Validate<PasswordReset.ResetRequest>();

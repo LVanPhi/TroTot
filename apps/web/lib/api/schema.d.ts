@@ -22,7 +22,7 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["Request"];
+                    "application/json": components["schemas"]["RegisterRequest"];
                 };
             };
             responses: {
@@ -59,7 +59,7 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["Request"];
+                    "application/json": components["schemas"]["VerifyEmailRequest"];
                 };
             };
             responses: {
@@ -96,7 +96,7 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["Request"];
+                    "application/json": components["schemas"]["ResendEmailRequest"];
                 };
             };
             responses: {
@@ -133,7 +133,7 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["Request"];
+                    "application/json": components["schemas"]["LoginRequest"];
                 };
             };
             responses: {
@@ -142,7 +142,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["LoginResponse"];
+                    };
                 };
             };
         };
@@ -175,7 +177,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["SessionRefreshResponse"];
+                    };
                 };
             };
         };
@@ -236,7 +240,7 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["ForgotRequest"];
+                    "application/json": components["schemas"]["PasswordResetForgotRequest"];
                 };
             };
             responses: {
@@ -273,7 +277,7 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["ResetRequest"];
+                    "application/json": components["schemas"]["PasswordResetResetRequest"];
                 };
             };
             responses: {
@@ -310,7 +314,7 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["OtpRequest"];
+                    "application/json": components["schemas"]["PhoneOtpRequest"];
                 };
             };
             responses: {
@@ -347,7 +351,7 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["VerifyRequest"];
+                    "application/json": components["schemas"]["PhoneVerifyRequest"];
                 };
             };
             responses: {
@@ -387,7 +391,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["MeResponse"];
+                    };
                 };
             };
         };
@@ -402,7 +408,7 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["DeleteRequest"];
+                    "application/json": components["schemas"]["MeEndpointsDeleteRequest"];
                 };
             };
             responses: {
@@ -426,7 +432,7 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["UpdateRequest"];
+                    "application/json": components["schemas"]["MeEndpointsUpdateRequest"];
                 };
             };
             responses: {
@@ -435,7 +441,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["MeResponse"];
+                    };
                 };
             };
         };
@@ -467,7 +475,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["PagedOfUserItem"];
+                    };
                 };
             };
         };
@@ -499,7 +509,7 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["RoleRequest"];
+                    "application/json": components["schemas"]["AdminUsersRoleRequest"];
                 };
             };
             responses: {
@@ -644,7 +654,7 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["PhoneRequest"];
+                    "application/json": components["schemas"]["AdminUsersPhoneRequest"];
                 };
             };
             responses: {
@@ -667,36 +677,94 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        DeleteRequest: {
+        AdminUsersPhoneRequest: {
+            phone: string;
+        };
+        AdminUsersRoleRequest: {
+            roleCode: string;
+        };
+        AdminUsersUserItem: {
+            /** Format: int64 */
+            id: number | string;
+            email: null | string;
+            fullName: string;
+            phone: null | string;
+            status: string;
+            emailVerified: boolean;
+            phoneVerified: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            roles: string[];
+        };
+        LoginRequest: {
+            email: string;
             password: string;
         };
-        ForgotRequest: {
+        LoginResponse: {
+            accessToken: string;
+            /** Format: int32 */
+            expiresIn: number | string;
+            user: components["schemas"]["MeResponse"];
+        };
+        MeEndpointsDeleteRequest: {
+            password: string;
+        };
+        MeEndpointsUpdateRequest: {
+            fullName: string;
+        };
+        MeResponse: {
+            email: string;
+            fullName: string;
+            phone: null | string;
+            emailVerified: boolean;
+            phoneVerified: boolean;
+            roles: string[];
+            permissions: string[];
+            posting: components["schemas"]["PostingStatus"];
+        };
+        PagedOfUserItem: {
+            items: components["schemas"]["AdminUsersUserItem"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int64 */
+            total: number | string;
+        };
+        PasswordResetForgotRequest: {
             email: string;
         };
-        OtpRequest: {
+        PasswordResetResetRequest: {
+            token: string;
+            newPassword: string;
+        };
+        PhoneOtpRequest: {
             phone: string;
         };
-        PhoneRequest: {
+        PhoneVerifyRequest: {
             phone: string;
+            code: string;
         };
-        Request: {
+        PostingStatus: {
+            allowed: boolean;
+            missing: string[];
+        };
+        RegisterRequest: {
             email: string;
             password: string;
             fullName: string;
             accountType: string;
         };
-        ResetRequest: {
-            token: string;
-            newPassword: string;
+        ResendEmailRequest: {
+            email: string;
         };
-        RoleRequest: {
-            roleCode: string;
+        SessionRefreshResponse: {
+            accessToken: string;
+            /** Format: int32 */
+            expiresIn: number | string;
         };
-        UpdateRequest: {
-            fullName: string;
-        };
-        VerifyRequest: {
-            phone: string;
+        VerifyEmailRequest: {
+            email: string;
             code: string;
         };
     };

@@ -238,8 +238,8 @@ project; cập nhật bản vá bảo mật hằng tháng (Dependabot).
 | Lưu trữ tệp | Garage v2.x (S3 API) |
 | AI worker | Python 3.12, uv, FastAPI + uvicorn, psycopg 3 (+ psycopg_pool), redis-py, pydantic 2 + pydantic-settings, httpx, boto3, Pillow, imagehash, pytesseract + `tesseract-ocr-vie`, open_clip_torch, sentence-transformers (BGE-M3), transformers (PhoBERT), torch bản CPU, underthesea, regex, numpy, scikit-learn (chỉ cho nghiên cứu) |
 | Kiểm thử worker | pytest, testcontainers (Python), ruff, pip-audit |
-| Frontend | Node.js 24 LTS, pnpm, Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, shadcn/ui, lucide-react, TanStack Query, react-hook-form + zod, openapi-typescript + openapi-fetch, @microsoft/signalr, maplibre-gl + react-map-gl, @dnd-kit/core + @dnd-kit/sortable, sonner, date-fns |
-| Kiểm thử web | Vitest + Testing Library, Playwright |
+| Frontend | Node.js 24 LTS, pnpm, Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, shadcn/ui, lucide-react, TanStack Query, react-hook-form + zod (+ @hookform/resolvers), openapi-typescript + openapi-fetch, @microsoft/signalr, maplibre-gl + react-map-gl, @dnd-kit/core + @dnd-kit/sortable, sonner, date-fns |
+| Kiểm thử web | Vitest + Testing Library (jsdom), Playwright |
 | Hạ tầng | Docker Compose, Docker buildx (amd64 + arm64), Caddy 2, GitHub Actions, GHCR, WAL-G, rclone, k6, OWASP ZAP |
 
 ¹ ImageSharp dùng Six Labors Split License: miễn phí cho dự án mã nguồn mở và phi thương mại như đồ án;
