@@ -49,12 +49,15 @@ Một tài khoản có thể có nhiều vai trò. Quyền chi tiết: [01-requi
 
 1. **AI không kết luận.** Hệ thống chỉ nói "có dấu hiệu rủi ro" ở ba mức *Thấp / Cần thận trọng /
    Cao*. Không bao giờ hiển thị chữ "lừa đảo" gắn với một người hay một tin cụ thể.
-2. **Con người quyết định.** Mọi việc công khai, ẩn, gỡ tin do cán bộ xác minh thực hiện; AI chỉ
-   sắp hàng đợi và đưa bằng chứng.
+2. **Con người quyết định.** Mọi quyết định công khai, ẩn, gỡ tin vì vi phạm do cán bộ xác minh thực
+   hiện; AI chỉ sắp hàng đợi và đưa bằng chứng. Ngoài cán bộ, chỉ người đăng tự gỡ tin của mình và hệ
+   thống chuyển tin theo luật cố định (hết hạn, quá hạn kháng nghị). Cán bộ không xử lý việc liên quan
+   đến chính mình.
 3. **Có bằng chứng mới có dấu hiệu.** Mỗi dấu hiệu phải trích nguyên văn câu trong tin; câu trích
    không khớp đầu vào thì dấu hiệu bị loại.
 4. **Riêng tư mặc định.** Che số điện thoại, số tài khoản, họ tên trước khi gửi ra LLM bên ngoài;
-   định danh của bên thứ ba chỉ lưu dạng HMAC; lượt kiểm tra của khách tự xóa sau 30 ngày.
+   chỉ mục định danh của bên thứ ba (bảng `identifiers`) chỉ lưu dạng HMAC; nội dung gốc gửi để Kiểm
+   tra tin (chữ, ảnh) của mọi người dùng tự xóa sau 30 ngày (giữ 1 năm nếu lượt đó bị báo cáo).
 5. **Bên bị ảnh hưởng luôn được kháng nghị** trong 7 ngày, và người xử lý phải khác người đã ra
    quyết định.
 6. **Không cầm tiền.** Không có chức năng thanh toán, đặt cọc hay giữ tiền.
@@ -63,10 +66,10 @@ Một tài khoản có thể có nhiều vai trò. Quyền chi tiết: [01-requi
 
 | Mục tiêu | Chỉ số | Chỉ tiêu |
 |---|---|---|
-| Chấm rủi ro tin | Recall / Precision lớp "rủi ro cao", tập test ≥ 300 tin thật | Recall ≥ 0,85; Precision ≥ 0,80 |
+| Chấm rủi ro tin | Recall / Precision lớp "rủi ro cao", tập test ≥ 100 tin thật (300–500 tin gán nhãn, chia 60/20/20 theo `group_key`); báo cáo kèm khoảng tin cậy 95% | Recall ≥ 0,85; Precision ≥ 0,80 |
 | Phát hiện ảnh dùng lại | Precision@1 trên ảnh bị cắt, chèn chữ, nén lại | ≥ 0,90 |
 | Cảnh báo có bằng chứng | Tỉ lệ trích đúng câu làm bằng chứng (100 mẫu kiểm tay) | ≥ 90% |
-| Tốc độ kiểm tra tin | p95 từ lúc tải ảnh đến lúc có kết quả | ≤ 10 giây |
+| Tốc độ kiểm tra tin | p95 từ lúc API nhận lượt kiểm tra đến lúc có kết quả (`completed_at − created_at`, đo phía máy chủ) | ≤ 10 giây |
 | Tìm kiếm câu tự nhiên | nDCG@10 trên 30 truy vấn mẫu so với tìm theo từ khóa | Cao hơn ≥ 10% |
 | Vận hành thật | Uptime trong thời gian thử nghiệm | ≥ 99% |
 | Thử nghiệm người dùng | Số sinh viên dùng thử; điểm SUS | ≥ 30 người; SUS ≥ 70 |
@@ -108,4 +111,4 @@ Dùng đúng tên trong cột "Code" cho bảng, cột, class, endpoint. Giao di
 | [08-deployment.md](08-deployment.md) | Docker Compose, Caddy, CI/CD, sao lưu, giám sát, biến môi trường |
 | [09-testing.md](09-testing.md) | Chiến lược kiểm thử, kiểm thử AI, kiểm thử tải |
 | [10-implementation-plan.md](10-implementation-plan.md) | Các task theo thứ tự, kèm prompt cho AI agent và tiêu chí xong |
-| [../db/migrations/](../db/migrations/) | Lược đồ CSDL thật (32 bảng), đã chạy thử |
+| [../db/migrations/](../db/migrations/) | Lược đồ CSDL thật (32 bảng, migration 0001–0003), đã chạy thử trên PostgreSQL 18 |

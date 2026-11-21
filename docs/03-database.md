@@ -2,12 +2,17 @@
 
 CSDL là hệ OLTP trên PostgreSQL 18, gồm **32 bảng đạt 3NF** chia 4 nhóm, thống kê chạy trên
 materialized view riêng. Nguồn sự thật là các file SQL trong [`db/migrations/`](../db/migrations/);
-tài liệu này giải thích quy ước và cung cấp truy vấn mẫu. Cả hai migration đã được chạy thử cùng
-một bộ kiểm thử ràng buộc và phân quyền (xem [09-testing.md](09-testing.md#kiểm-thử-csdl)).
+tài liệu này giải thích quy ước và cung cấp truy vấn mẫu. Ba migration `0001`–`0003` đã được chạy thử
+trên PostgreSQL 18.7 + PostGIS 3.7.0 + pgvector 0.8.7 (11/2026, gồm `GRANT MAINTAIN` và
+`SET LOCAL hnsw.iterative_scan`) cùng một bộ kiểm thử ràng buộc và phân quyền (xem [09-testing.md](09-testing.md#kiểm-thử-csdl)).
 
 > So với đề cương (31 bảng): thêm `scan_images` để lưu ảnh người dùng gửi khi Kiểm tra tin
 > (worker cần object key để đọc ảnh), và bổ sung các cột phục vụ cài đặt (`scans.public_id`,
 > `scans.status`, `listings.description`, `listings.search_tsv`, các cột tín hiệu trong `assessments`…).
+>
+> `0003_review_fixes.sql` (sau đợt rà soát tài liệu): thêm `assessments.price_vnd` (giá đã dùng để so),
+> thêm cạnh vòng đời `expired → draft`, ngừng tiện nghi `private_bathroom` (trùng nghĩa `is_self_contained`).
+> Không thêm bảng.
 
 ## Schema và role
 
@@ -25,6 +30,7 @@ một bộ kiểm thử ràng buộc và phân quyền (xem [09-testing.md](09-t
 | `app_worker` | worker | Đọc dữ liệu cần chấm; ghi kết quả chấm; UPDATE theo **cột** (`scans.status`…); với `users` chỉ đọc được cột `id`, `created_at` (tuổi tài khoản); không đọc hồ sơ, giấy tờ, báo cáo |
 | `app_maintenance` | job đêm | Xóa lượt kiểm tra hết hạn, chuyển tin hết hạn, dọn outbox, `MAINTAIN` để làm mới view |
 | `app_reporting` | notebook, BI | Chỉ đọc schema `reporting` |
+| `app_research` | người làm đồ án (notebook gán nhãn, huấn luyện) | Schema `research`; quyền cấp ở migration giai đoạn AI (T4.5). Role do `00_init.sh` tạo vì `app_migrator` không có CREATEROLE |
 
 Search path của mọi role là `app, public`, nên SQL trong code viết `listings` hay `app.listings` đều
 được; quy ước là **luôn ghi rõ `app.`** để đọc code không cần nhớ search path.
@@ -112,7 +118,7 @@ bằng `CHECK (btrim(cột) <> '')`. Không dùng giá trị "ma thuật" như `
 | `assessments.llm_model_id` | Lượt chấm không gọi LLM |
 | `assessments.text_signal` | Không có chữ để chấm |
 | `assessments.image_signal` | Không có ảnh |
-| `assessments.price_signal` (+ `price_median_vnd`, `price_sample_size`) | Không có giá hoặc chưa đủ 10 phòng để so |
+| `assessments.price_signal` (+ `price_median_vnd`, `price_sample_size`, `price_vnd`) | Không có giá hoặc chưa đủ 10 phòng để so (`price_vnd` thêm ở 0003; dòng cũ có thể NULL dù có tín hiệu) |
 | `assessments.community_signal` | Không trích được định danh nào |
 | `identifier_stats.last_confirmed_at` | Chưa có báo cáo nào được xác nhận |
 | `outbox_messages.scan_id` / `listing_id` | Cung loại trừ: đúng một cột có giá trị (CHECK `num_nonnulls`) |
@@ -146,11 +152,20 @@ Cột này cần cho UNIQUE từng phần "mỗi tin một kháng nghị đang m
   `document_access_logs` — `app_api` không có quyền UPDATE/DELETE.
 - **CASCADE** chỉ dùng cho: bảng con 1–1 của tin, ảnh tin, và mọi dữ liệu phụ của một lượt sàng lọc
   (`scan_images`, `assessments`, `flags`, `matches`, `scan_identifiers`, `outbox_messages`, `reports` trên lượt đó).
-  Các khóa ngoại còn lại mặc định: CSDL chặn xóa khi còn tham chiếu.
+  Các khóa ngoại còn lại mặc định: CSDL chặn xóa khi còn tham chiếu. Hệ quả cần biết: xóa một ảnh tin
+  (chỉ khi `draft`) xóa theo các dòng `assessment_image_matches` trỏ tới ảnh đó — xem "Hạn chế đã biết" ở 07-security.md.
 - **Lưu giữ**: lượt kiểm tra nhanh 30 ngày (`expires_at`); có báo cáo thì API đặt lại `expires_at = now + 1 năm`;
   job đêm xóa lượt hết hạn trừ khi còn báo cáo `open`. Tệp ảnh trên S3 bị xóa **trước** khi xóa dòng.
 - **Đổi trạng thái tin** chỉ qua `ListingTransitionService` (BR-09). CHECK `ck_listing_transitions_allowed`
-  là lớp chặn cuối, không thay cho kiểm tra ở API.
+  là lớp chặn cuối, không thay cho kiểm tra ở API. **Ngoại lệ duy nhất**: job đêm (`TroViec.Maintenance`)
+  dùng hai câu lệnh hàng loạt ở mục Job đêm bên dưới — vẫn tăng `version` và ghi `listing_transitions`
+  trong cùng câu lệnh.
+
+### Ngoại lệ có chủ đích
+
+- Trigger `check_review` (0001) kiểm **tên vai trò** `student` thay vì quyền `review.create`, vì trigger
+  không đọc được claim của token. Đây là lớp chặn cuối, tương đương `review.create` theo seed; nếu đổi
+  ánh xạ quyền của `review.create` thì phải sửa trigger bằng migration mới.
 
 ## Truy vấn mẫu
 
@@ -187,6 +202,10 @@ public async Task TransitionAsync(NpgsqlConnection conn, NpgsqlTransaction tx, l
 ```
 
 Thao tác tự động dùng `actor_id = app.system_user_id()` (hàm SECURITY DEFINER, không cần quyền đọc `users`).
+Trước khi gọi `TransitionAsync`, service kiểm thêm hai luật không nằm trong CSDL: tin có kháng nghị đang mở
+thì chỉ cho cạnh do việc xử lý kháng nghị đó (`appeal.pending`), và người thao tác kiểm duyệt khác người đăng
+tin (`moderation.conflict_of_interest`). Mọi cạnh sang `verified` (duyệt, chấp nhận kháng nghị từ `rejected`)
+truyền `newExpiresAt` và ghi outbox embedding trong cùng transaction.
 
 ### Tìm tin công khai có bộ lọc
 
@@ -216,10 +235,15 @@ ORDER BY distance_m          -- whitelist: distance_m | created_at DESC | monthl
 LIMIT @Limit OFFSET @Offset;
 ```
 
+Thiếu `lat`/`lng` thì API dùng tọa độ cơ sở đầu tiên trong `Campuses__Json`. `@Amenities` chỉ nhận mã
+tiện nghi đang dùng (`is_active`).
+
 ### Tìm kiếm hybrid (RRF)
 
-`@Query` là phần còn lại của câu sau khi đã tách điều kiện cứng; `@QueryVector` lấy từ dịch vụ embedding.
-Nếu không có vector, bỏ CTE `vec`. Chạy cả khối trong một transaction để `SET LOCAL` có hiệu lực.
+`@Query` là phần còn lại của câu sau khi đã tách điều kiện cứng; `@QueryVector` lấy từ dịch vụ embedding,
+`@TextEmbeddingModelId` là `modelVersionId` dịch vụ trả về (không trộn vector của hai mô hình).
+Nếu không có vector, bỏ CTE `vec`. Nếu `@Query` rỗng, không chạy khối này mà dùng truy vấn tìm tin ở trên.
+Chạy cả khối trong một transaction để `SET LOCAL` có hiệu lực.
 
 ```sql
 SET LOCAL hnsw.iterative_scan = relaxed_order;   -- pgvector 0.8+: lọc xong vẫn đủ kết quả
@@ -239,6 +263,7 @@ fts AS (
 vec AS (
     SELECT e.listing_id AS id, row_number() OVER (ORDER BY e.embedding <=> q.qvec) AS rnk
     FROM app.listing_embeddings e JOIN candidates c ON c.id = e.listing_id CROSS JOIN q
+    WHERE e.model_version_id = @TextEmbeddingModelId
     ORDER BY e.embedding <=> q.qvec LIMIT 100)
 SELECT id, sum(1.0 / (60 + rnk)) AS rrf_score
 FROM (SELECT id, rnk FROM fts UNION ALL SELECT id, rnk FROM vec) u
@@ -280,11 +305,12 @@ SELECT s.public_id, s.source::text AS source, s.status::text AS status, s.error_
        s.created_at, s.completed_at,
        a.id AS assessment_id, a.score, a.risk_level::text AS risk_level,
        a.text_signal, a.image_signal, a.price_signal, a.community_signal,
-       a.price_median_vnd, a.price_sample_size, s.claimed_rent_vnd
+       a.price_median_vnd, a.price_sample_size, a.price_vnd
 FROM app.scans s
 LEFT JOIN LATERAL (SELECT * FROM app.assessments a1 WHERE a1.scan_id = s.id
                    ORDER BY a1.id DESC LIMIT 1) a ON true
-WHERE s.public_id = @ScanId;
+WHERE s.public_id = @ScanId
+  AND s.source = 'quick_check';   -- lượt sàng lọc tin đăng không lộ qua /scans (BR-20) → 404
 
 SELECT c.code, c.name, c.legal_basis, f.evidence_text
 FROM app.assessment_flags f JOIN app.criteria c ON c.id = f.criterion_id
@@ -296,12 +322,32 @@ FROM app.scan_identifiers si
 JOIN app.identifiers i ON i.id = si.identifier_id
 LEFT JOIN app.identifier_stats st ON st.identifier_id = i.id
 WHERE si.scan_id = @ScanInternalId;
+
+-- Ảnh khớp, gộp theo ảnh đầu vào (imageMatches của GET /scans/{scanId})
+SELECT m.source_image_no,
+       count(DISTINCT li.listing_id)                                                    AS other_listing_count,
+       count(DISTINCT li.listing_id) FILTER (WHERE l.status IN ('hidden', 'removed'))   AS removed_listing_count,
+       count(DISTINCT l.ward_code) > 1                                                  AS different_location,
+       (array_agg(l.public_id ORDER BY m.hamming_distance)
+            FILTER (WHERE l.status = 'verified' AND l.expires_at > now()))[1]          AS public_listing_id,
+       (array_agg(l.title ORDER BY m.hamming_distance)
+            FILTER (WHERE l.status = 'verified' AND l.expires_at > now()))[1]          AS public_listing_title
+FROM app.assessment_image_matches m
+JOIN app.listing_images li ON li.id = m.listing_image_id
+JOIN app.listings l ON l.id = li.listing_id
+WHERE m.assessment_id = @AssessmentId
+GROUP BY m.source_image_no
+ORDER BY m.source_image_no;
 ```
+
+`different_location` = các tin khớp nằm ở từ hai phường/xã trở lên (dấu hiệu một bộ ảnh dùng cho nhiều
+địa chỉ). Màn hình cán bộ cho lượt `listing` so thêm với `ward_code` của chính tin đang chấm.
+Tin khớp không công khai chỉ được đếm, không lộ tiêu đề hay id.
 
 ### Outbox relay
 
 ```sql
--- trong một transaction, mỗi 500 ms hoặc khi có NOTIFY
+-- trong một transaction, mỗi 500 ms hoặc khi có NOTIFY troviec_outbox (API tự gửi sau commit, không dùng trigger)
 SELECT id, scan_id, listing_id FROM app.outbox_messages
 WHERE published_at IS NULL
 ORDER BY id
@@ -309,9 +355,16 @@ LIMIT 100
 FOR UPDATE SKIP LOCKED;
 -- XADD từng việc vào Redis, rồi:
 UPDATE app.outbox_messages SET published_at = now() WHERE id = ANY(@Ids);
+
+-- mỗi phút: đẩy lại lượt chưa worker nào nhận sau 5 phút (Redis mất dữ liệu, stream bị cắt)
+UPDATE app.outbox_messages o SET published_at = NULL
+FROM app.scans s
+WHERE o.scan_id = s.id AND s.status = 'queued'
+  AND o.published_at < now() - interval '5 minutes';
 ```
 
-Nếu XADD thành công mà UPDATE lỗi, việc sẽ được gửi lại lần nữa — chấp nhận được vì bên nhận idempotent.
+Nếu XADD thành công mà UPDATE lỗi, hoặc việc bị đẩy lại khi hàng đợi chỉ đang dồn, việc sẽ được gửi lại
+lần nữa — chấp nhận được vì bên nhận idempotent.
 
 ### Định danh (worker)
 
@@ -334,10 +387,11 @@ WHERE li.phash IS NOT NULL AND li.listing_id <> coalesce(@ExcludeListingId, -1)
   AND bit_count((li.phash # @Phash)::bit(64)) <= 10
 ORDER BY hamming LIMIT 20;
 
--- CLIP: cosine similarity ≥ 0,92 (HNSW)
+-- CLIP: cosine similarity ≥ 0,92 (HNSW); chỉ so vector cùng mô hình đang chạy
 SELECT li.id, li.listing_id, 1 - (li.clip_embedding <=> @Clip::vector) AS similarity
 FROM app.listing_images li
-WHERE li.clip_embedding IS NOT NULL AND li.listing_id <> coalesce(@ExcludeListingId, -1)
+WHERE li.clip_embedding IS NOT NULL AND li.clip_model_id = @ClipModelId
+  AND li.listing_id <> coalesce(@ExcludeListingId, -1)
 ORDER BY li.clip_embedding <=> @Clip::vector
 LIMIT 20;
 ```
@@ -353,14 +407,18 @@ FROM app.listings l JOIN app.room_listings r ON r.listing_id = l.id
 WHERE l.status IN ('verified', 'expired')
   AND l.updated_at > now() - interval '180 days'
   AND l.id <> coalesce(@ExcludeListingId, -1)
-  AND r.is_self_contained = @IsSelfContained
+  AND (@IsSelfContained::boolean IS NULL OR r.is_self_contained = @IsSelfContained)  -- kiểm tra nhanh: thường không biết
   AND ST_DWithin(l.location, @Point::geography, 1000);
 -- Kiểm tra nhanh không có tọa độ: thay ST_DWithin bằng l.ward_code = @ClaimedWardCode
 ```
 
-Worker tính trung vị và MAD bằng numpy; dưới 10 mẫu thì `price_signal = NULL` (không đoán).
+Worker tính trung vị và MAD bằng numpy; dưới 10 mẫu thì `price_signal = NULL` (không đoán). Có tín hiệu
+thì ghi cả `price_vnd` (giá đã đem so) cùng `price_median_vnd`, `price_sample_size`.
 
 ### Job đêm (role `app_maintenance`)
+
+Đây là ngoại lệ duy nhất của BR-09 (đổi `listings.status` ngoài `ListingTransitionService`): câu lệnh
+hàng loạt vẫn tăng `version` và ghi `listing_transitions` cùng câu lệnh, actor là tài khoản system.
 
 ```sql
 -- 1. Tin quá hạn
@@ -414,7 +472,8 @@ Lưu ý quyền: `RETURNING` cần quyền `SELECT` trên cột trả về; `app
 | `23505` | `uq_listing_images_listing_sha256` | `image.duplicate` | 409 |
 | `23505` | `uq_reports_open_listing_reporter`, `uq_reports_open_scan_reporter` | `report.already_open` | 409 |
 | `23505` | `uq_reviews_listing_reviewer` | `review.already_exists` | 409 |
-| `23505` | `uq_appeals_one_open`, `uq_appeals_listing_transition_id` | `appeal.already_open` | 409 |
+| `23505` | `uq_appeals_one_open` | `appeal.already_open` | 409 |
+| `23505` | `uq_appeals_listing_transition_id` (quyết định này đã được kháng nghị, kể cả đã xử lý xong) | `appeal.already_used` | 409 |
 | `23505` | `uq_owner_documents_sha256` | `document.duplicate` | 409 |
 | `23505` | `uq_model_versions_one_active` | `model.activation_conflict` | 409 |
 | `23503` | mọi FK | `validation.reference_not_found` | 422 |
@@ -430,7 +489,8 @@ Lưu ý quyền: `RETURNING` cần quyền `SELECT` trên cột trả về; `app
 3. Thêm ràng buộc mới đặt tên theo quy ước và cập nhật bảng "Lỗi CSDL → mã lỗi" nếu API cần mã riêng.
 4. Chỉ mục trên bảng lớn ở production: tách file riêng dùng `CREATE INDEX CONCURRENTLY`
    (file đó chạy ngoài transaction — đánh dấu `-- dbup:no-transaction` và cấu hình DbUp tương ứng).
-5. Mọi migration phải chạy được trên CSDL rỗng **và** trên bản sao production (CI chạy cả hai).
+5. Mọi migration phải chạy được trên CSDL rỗng (CI, job `db`) **và** trên bản khôi phục từ sao lưu production
+   (chạy tay trên VPS hoặc máy cá nhân trước khi merge migration đó; không đưa dữ liệu thật lên CI).
 6. Đổi tên ENUM value hoặc xóa cột: làm theo 2 bước (thêm mới → chuyển code → xóa cũ ở release sau).
 
 ## Dữ liệu đơn vị hành chính

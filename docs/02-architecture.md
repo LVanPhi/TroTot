@@ -16,7 +16,7 @@ flowchart TB
         API["api — ASP.NET Core 10<br/>Minimal API · Dapper · JWT · SignalR"]
         Relay["OutboxRelay + ScanCompletedConsumer<br/>(BackgroundService trong api)"]
         Worker["worker — Python 3.12<br/>OCR · che PII · LLM · pHash · CLIP · BGE-M3 · gộp điểm"]
-        Embed["worker /internal/embed<br/>(FastAPI, mạng nội bộ)"]
+        Embed["worker-embed — /internal/embed<br/>(FastAPI, mạng nội bộ)"]
         PG[("PostgreSQL 18<br/>PostGIS · pgvector · FTS")]
         Redis[("Redis 8<br/>Streams · hạn mức · OTP · refresh token")]
         S3[("Garage — S3<br/>ảnh tin · ảnh kiểm tra · giấy tờ đã mã hóa")]
@@ -44,13 +44,14 @@ flowchart TB
 
 | Thành phần | Trách nhiệm | Không được làm |
 |---|---|---|
-| `web` | Giao diện PWA, SSR trang công khai (chi tiết tin cho SEO), gọi API bằng client sinh từ OpenAPI | Gọi thẳng CSDL, Redis, S3; giữ access token ngoài bộ nhớ |
+| `web` | Giao diện PWA, SSR trang công khai (chi tiết tin cho SEO), gọi API bằng client sinh từ OpenAPI. Khi SSR, chuyển tiếp `X-Forwarded-For` của người dùng (API coi `web` là proxy tin cậy, nếu không mọi khách SSR chung một IP và dính hạn mức) | Gọi thẳng CSDL, Redis, S3; giữ access token ngoài bộ nhớ |
 | `api` | Xác thực, phân quyền, nghiệp vụ, ghi CSDL, nhận tệp tải lên, outbox, SignalR | Gọi LLM; xử lý ảnh nặng (chỉ kiểm tra + mã hóa lại) |
-| `worker` | Pipeline AI cho mỗi lượt sàng lọc; tính embedding tin; dịch vụ embedding nội bộ | Đọc `users`, hồ sơ chủ, giấy tờ, báo cáo; đổi trạng thái tin |
+| `worker` | Pipeline AI cho mỗi lượt sàng lọc | Đọc PII trong `users` (chỉ được `id`, `created_at`), hồ sơ chủ, giấy tờ, báo cáo; đổi trạng thái tin; ghi S3 (khóa Garage chỉ-đọc) |
+| `worker-embed` | Dịch vụ embedding nội bộ (`/internal/embed`) + tính embedding tin (`troviec:listing-embed`) | Như `worker` |
 | `maintenance` | Job đêm (US-901) với role `app_maintenance` | Mọi thao tác khác |
 | PostgreSQL | Nguồn dữ liệu duy nhất (quan hệ + vector + không gian + full-text) | — |
 | Redis | Hàng đợi (Streams), bộ đếm hạn mức, OTP, refresh token | Lưu dữ liệu nghiệp vụ bền vững |
-| Garage | Lưu tệp qua S3 API: 3 bucket (`listing-images` công khai qua website mode, `scan-images` và `owner-documents` riêng tư) | — |
+| Garage | Lưu tệp qua S3 API: 3 bucket (`listing-images` công khai qua website mode, `scan-images` và `owner-documents` riêng tư); khóa `troviec-app` (api, maintenance) đọc/ghi, khóa `troviec-worker` chỉ đọc `scan-images`, `listing-images` | — |
 
 ## Luồng chính
 
@@ -91,20 +92,24 @@ sequenceDiagram
 1. `POST /api/v1/listings/{id}/submit` kèm `version`.
 2. API kiểm BR-02, rồi trong **một transaction**: cập nhật `listings` (status `screening`,
    `version + 1`, điều kiện `version = @version`), ghi `listing_transitions`, tạo `scans`
-   (source `listing`, `input_text` = tiêu đề + mô tả lúc gửi), ghi định danh số điện thoại người
-   đăng vào `identifiers` + `scan_identifiers`, ghi `outbox_messages`.
+   (source `listing`, `requester_id` = người đăng, `input_text` = tiêu đề + mô tả lúc gửi), ghi định
+   danh số điện thoại người đăng vào `identifiers` + `scan_identifiers`, ghi `outbox_messages`.
+   Lượt này không tính hạn mức BR-05 và kết quả chỉ cán bộ xem (BR-20).
 3. Worker chấm như luồng trên (đọc ảnh từ `listing_images`, tính `phash`/`clip_embedding` còn thiếu).
-4. `ScanCompletedConsumer` nhận sự kiện có `listingId` → chuyển `screening → pending_review`
-   (actor system) → đẩy `QueueChanged` qua hub kiểm duyệt.
+4. `ScanCompletedConsumer` nhận sự kiện có `listingId` → nếu `scanId` là lượt mới nhất của tin
+   (`ORDER BY created_at DESC LIMIT 1`) và tin còn ở `screening` thì chuyển `screening → pending_review`
+   (actor system) → đẩy `QueueChanged` qua hub kiểm duyệt; ngược lại chỉ XACK.
 
 ### Tìm bằng câu tự nhiên
 
 1. API tách điều kiện cứng từ câu bằng bộ phân tích luật (giá: "dưới 2,5 triệu", "2tr5"; tiện nghi
    theo từ khóa trong bảng `amenities`; "gần trường" → bán kính mặc định quanh cơ sở đã chọn).
-2. API gọi `POST http://worker:8001/internal/embed` (timeout 800 ms) lấy vector câu hỏi.
-3. Một câu SQL: full-text (`search_tsv`) và vector (`listing_embeddings`, HNSW) đều áp bộ lọc cứng,
-   lấy top 100 mỗi bên, gộp bằng Reciprocal Rank Fusion (`k = 60`). Truy vấn mẫu: [03-database.md](03-database.md#tìm-kiếm-hybrid-rrf).
-4. Lỗi hoặc quá thời gian ở bước 2 → chỉ chạy nhánh full-text.
+2. API gọi `POST http://worker-embed:8001/internal/embed` (timeout 800 ms) lấy vector câu hỏi.
+3. Một câu SQL: full-text (`search_tsv`) và vector (`listing_embeddings` của phiên bản `text_embedding`
+   đang chạy, HNSW) đều áp bộ lọc cứng, lấy top 100 mỗi bên, gộp bằng Reciprocal Rank Fusion (`k = 60`).
+   Truy vấn mẫu: [03-database.md](03-database.md#tìm-kiếm-hybrid-rrf).
+4. Lỗi hoặc quá thời gian ở bước 2 → chỉ chạy nhánh full-text. Phần câu còn lại rỗng → bỏ cả hai
+   nhánh, trả kết quả như `GET /listings` với bộ lọc đã tách.
 
 ### Mở giấy tờ xác minh
 
@@ -119,16 +124,20 @@ sequenceDiagram
 | Kênh | Tên | Nội dung (chi tiết ở 05-ai-worker.md) | Bên ghi → bên đọc |
 |---|---|---|---|
 | Redis Stream | `troviec:scan-requested` | `{"scanId": 123}` | api (OutboxRelay) → worker, group `ai-workers` |
-| Redis Stream | `troviec:listing-embed` | `{"listingId": 45}` | api (OutboxRelay) → worker, group `ai-workers` |
+| Redis Stream | `troviec:listing-embed` | `{"listingId": 45}` | api (OutboxRelay) → worker-embed, group `ai-workers` |
 | Redis Stream | `troviec:scan-completed` | `{"scanId", "publicId", "status", "source", "listingId"}` | worker → api, group `api` |
 | Redis Stream | `troviec:dead-letter` | việc lỗi quá 3 lần | worker → người vận hành |
-| HTTP nội bộ | `POST worker:8001/internal/embed` | `{"texts": [...]}` → vector 1024 chiều | api → worker, header `X-Internal-Token` |
+| HTTP nội bộ | `POST worker-embed:8001/internal/embed` | `{"texts": [...]}` → vector 1024 chiều | api → worker-embed, header `X-Internal-Token` |
 | SignalR | `/hubs/scans`, `/hubs/moderation` | xem [04-api.md](04-api.md#signalr) | api → web |
 | CSDL | Bảng `app.*` | quyền theo role, xem migration | mọi thành phần |
 
 Đảm bảo giao việc: **at-least-once**. Mọi bên nhận phải idempotent:
-worker ghi điểm bằng `INSERT … ON CONFLICT (scan_id, aggregator_model_id) DO NOTHING`;
-`ScanCompletedConsumer` chỉ chuyển trạng thái khi tin còn ở `screening`.
+- worker ghi điểm bằng `INSERT … ON CONFLICT (scan_id, aggregator_model_id) DO NOTHING`; nhận lại một lượt
+  đã `completed`/`failed` thì **phát lại** `scan.completed` rồi mới XACK (phòng trường hợp chết sau commit
+  nhưng trước XADD — nếu chỉ XACK, tin sẽ kẹt ở `screening`);
+- `ScanCompletedConsumer` chỉ chuyển trạng thái khi tin còn ở `screening` và sự kiện thuộc lượt mới nhất của tin;
+- OutboxRelay mỗi phút đặt lại `published_at = NULL` cho outbox của lượt còn `queued` quá 5 phút (Redis
+  mất dữ liệu hoặc stream bị cắt), để việc được đẩy lại.
 
 ## Cấu trúc repo
 
@@ -138,7 +147,7 @@ troviec/
 ├── docs/                         # bộ tài liệu này
 ├── db/
 │   ├── init/00_init.sh           # superuser: extension, role, schema (chạy 1 lần)
-│   ├── migrations/               # 0001_init.sql, 0002_seed_reference.sql, ...
+│   ├── migrations/               # 0001_init.sql, 0002_seed_reference.sql, 0003_review_fixes.sql, ...
 │   └── seed/                     # đơn vị hành chính, dữ liệu demo
 ├── apps/
 │   ├── api/                      # .NET 10
@@ -153,14 +162,16 @@ troviec/
 │   │   ├── models/aggregator/    # agg-v0.json, agg-v1.json (trọng số + ngưỡng)
 │   │   └── tests/
 │   └── web/                      # Next.js 16
-├── research/                     # hướng dẫn gán nhãn, notebook, script E1–E7
+├── research/                     # hướng dẫn gán nhãn, notebook, script E1–E7, results/
+├── tests/load/                   # k6: browse.js, search.js, quick-check.js
 ├── infra/
 │   ├── docker-compose.yml        # dev
 │   ├── docker-compose.prod.yml
-│   ├── postgres/Dockerfile
+│   ├── postgres/Dockerfile       # postgres:18 + PostGIS + pgvector (amd64 + arm64)
 │   ├── caddy/Caddyfile
-│   └── garage/garage.toml
-└── .github/workflows/            # ci.yml, deploy.yml
+│   ├── garage/garage.toml · garage/init.sh
+│   └── vps/                      # README.md (chuẩn bị VPS), RESTORE.md (khôi phục)
+└── .github/workflows/            # ci.yml, deploy.yml, nightly.yml (E2E + ZAP)
 ```
 
 ### Backend: Minimal API + vertical slice
@@ -211,7 +222,7 @@ Cấu trúc chi tiết: [05-ai-worker.md](05-ai-worker.md#cấu-trúc-mã) và [
 | ADR-08 | LLM qua adapter trung lập nhà cung cấp (giao thức OpenAI-compatible, JSON schema) | Đổi nhà cung cấp không ảnh hưởng phần còn lại; có phương án tự host | Gắn chặt SDK một nhà cung cấp |
 | ADR-09 | PWA thay vì app native | Một mã nguồn, cài được, Web Share Target trên Android | React Native: gấp đôi khối lượng |
 | ADR-10 | JWT tự phát hành + refresh token xoay vòng lưu Redis | Không cần UI của ASP.NET Identity; phát hiện dùng lại token | Cookie session thuần: khó dùng cho SignalR + PWA |
-| ADR-11 | Một VPS + Docker Compose + Caddy | Đủ cho quy mô thử nghiệm; dựng lại bằng một lệnh; HTTPS tự động | Kubernetes: quá nặng cho đồ án |
+| ADR-11 | Một VPS + Docker Compose + Caddy; image đa kiến trúc `linux/amd64` + `linux/arm64` | Đủ cho quy mô thử nghiệm; dựng lại bằng một lệnh; HTTPS tự động; chạy được trên VPS ARM miễn phí (08-deployment.md, mục Chi phí) | Kubernetes: quá nặng cho đồ án |
 
 ## Phiên bản công nghệ
 
@@ -222,13 +233,14 @@ project; cập nhật bản vá bảo mật hằng tháng (Dependabot).
 |---|---|
 | Backend | .NET 10 (LTS), ASP.NET Core Minimal API, Npgsql, Dapper, Pgvector (.NET, có handler cho Dapper), FluentValidation, StackExchange.Redis, AWSSDK.S3, MailKit, Konscious.Security.Cryptography.Argon2, SixLabors.ImageSharp¹, DbUp (dbup-postgresql), Microsoft.AspNetCore.OpenApi + Scalar.AspNetCore |
 | Kiểm thử .NET | xUnit v3, Testcontainers (PostgreSQL, Redis), Shouldly² |
-| CSDL | PostgreSQL 18, PostGIS 3.6, pgvector 0.8.x — image tự build từ `postgis/postgis:18-3.6` |
+| CSDL | PostgreSQL 18, PostGIS 3 (gói PGDG, đã thử 3.7.0), pgvector 0.8.x (đã thử 0.8.7) — image tự build từ `postgres:18` (đa kiến trúc). Không dùng `postgis/postgis:18-3.6` vì image này chỉ có bản amd64 |
 | Hàng đợi / cache | Redis 8 (hoặc Valkey 8) |
 | Lưu trữ tệp | Garage v2.x (S3 API) |
-| AI worker | Python 3.12, uv, FastAPI, psycopg 3, redis-py, pydantic 2, httpx, boto3, Pillow, imagehash, pytesseract + `tesseract-ocr-vie`, open_clip_torch, sentence-transformers (BGE-M3), transformers (PhoBERT), torch bản CPU, underthesea, regex, numpy, scikit-learn (chỉ cho nghiên cứu) |
-| Frontend | Node.js 24 LTS, pnpm, Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, shadcn/ui, TanStack Query, react-hook-form + zod, openapi-typescript + openapi-fetch, @microsoft/signalr, maplibre-gl + react-map-gl, sonner, date-fns |
+| AI worker | Python 3.12, uv, FastAPI + uvicorn, psycopg 3 (+ psycopg_pool), redis-py, pydantic 2 + pydantic-settings, httpx, boto3, Pillow, imagehash, pytesseract + `tesseract-ocr-vie`, open_clip_torch, sentence-transformers (BGE-M3), transformers (PhoBERT), torch bản CPU, underthesea, regex, numpy, scikit-learn (chỉ cho nghiên cứu) |
+| Kiểm thử worker | pytest, testcontainers (Python), ruff, pip-audit |
+| Frontend | Node.js 24 LTS, pnpm, Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, shadcn/ui, lucide-react, TanStack Query, react-hook-form + zod, openapi-typescript + openapi-fetch, @microsoft/signalr, maplibre-gl + react-map-gl, @dnd-kit/core + @dnd-kit/sortable, sonner, date-fns |
 | Kiểm thử web | Vitest + Testing Library, Playwright |
-| Hạ tầng | Docker Compose, Caddy 2, GitHub Actions, GHCR, WAL-G |
+| Hạ tầng | Docker Compose, Docker buildx (amd64 + arm64), Caddy 2, GitHub Actions, GHCR, WAL-G, rclone, k6, OWASP ZAP |
 
 ¹ ImageSharp dùng Six Labors Split License: miễn phí cho dự án mã nguồn mở và phi thương mại như đồ án;
 nếu thương mại hóa phải xem lại giấy phép hoặc chuyển sang SkiaSharp.

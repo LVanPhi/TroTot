@@ -20,6 +20,7 @@ apps/web/
 │   ├── layout.tsx · manifest.ts · offline/page.tsx · not-found.tsx
 │   ├── (public)/page.tsx                       # /
 │   ├── (public)/kiem-tra/page.tsx              # /kiem-tra
+│   ├── (public)/kiem-tra/chia-se/route.ts      # dự phòng Web Share Target khi service worker chưa chạy
 │   ├── (public)/kiem-tra/[scanId]/page.tsx
 │   ├── (public)/tin/page.tsx                   # tìm tin: danh sách + bản đồ
 │   ├── (public)/tin/[listingId]/page.tsx       # chi tiết tin (SSR + metadata)
@@ -48,7 +49,7 @@ apps/web/
 | Đường dẫn | Ai vào được | Nội dung chính | API |
 |---|---|---|---|
 | `/` | mọi người | Nút lớn "Kiểm tra một tin", ô tìm kiếm câu tự nhiên, tin mới đã xác minh gần trường | `/listings`, `/meta/campuses` |
-| `/kiem-tra` | mọi người | Dán nội dung, tải tối đa 5 ảnh, tùy chọn giá + phường/xã; số lượt còn lại | `POST /scans` |
+| `/kiem-tra` | mọi người | Dán nội dung, tải tối đa 5 ảnh, tùy chọn giá + phường/xã; số lượt còn lại (hết lượt khách thì gợi ý đăng nhập) | `POST /scans`, `GET /scans/quota`, `/meta/communes` |
 | `/kiem-tra/[scanId]` | ai có link | Trạng thái realtime → kết quả (mục Hiển thị kết quả) | `GET /scans/{id}`, `/hubs/scans` |
 | `/tin` | mọi người | Tìm kiếm: ô câu tự nhiên, bộ lọc, chuyển danh sách ↔ bản đồ, chip "điều kiện đã hiểu" từ `appliedFilters` | `/listings`, `/listings/search` |
 | `/tin/[listingId]` | mọi người (tin công khai) | Ảnh, giá, bản đồ, tiện nghi, nhãn "Đã xác minh đến dd/MM/yyyy", liên hệ (khi đăng nhập), đánh giá, nút Lưu / Báo cáo | `/listings/{id}` |
@@ -78,7 +79,11 @@ quyền → trang 403 thân thiện, không redirect vòng lặp.
 - Middleware của `openapi-fetch`: gắn `Authorization`; gặp `401 auth.unauthenticated` thì refresh **một lần**
   (dùng chung một promise cho các request song song) rồi gửi lại; refresh lỗi → về trạng thái khách.
 - Request tới `/auth/refresh` và `/auth/logout` gửi header `X-Requested-With: troviec` (07-security.md).
-- Trang SSR (chi tiết tin, trang chủ) gọi API qua `API_INTERNAL_URL` không kèm token; phần cần đăng nhập
+- Trình duyệt gọi API theo `NEXT_PUBLIC_API_BASE_URL`: production để trống (cùng origin qua Caddy, đường dẫn
+  `/api/v1`, `/hubs`); dev là `http://localhost:8080` (khác origin → API bật CORS có credentials cho
+  `Cors__AllowedOrigins`, cookie refresh vẫn gửi vì `localhost:3000` và `localhost:8080` cùng site).
+- Trang SSR (chi tiết tin, trang chủ) gọi API qua `API_INTERNAL_URL` không kèm token và **chuyển tiếp
+  `X-Forwarded-For`** của người dùng (API tin `web` như proxy, 04-api.md mục Hạn mức); phần cần đăng nhập
   (số điện thoại liên hệ, nút Lưu) tải phía client sau khi có phiên.
 
 ## Gọi API
@@ -107,18 +112,22 @@ Thứ tự trên trang `/kiem-tra/[scanId]`:
 
 1. **Đang xử lý**: skeleton + "Đang phân tích nội dung và hình ảnh…" (thường dưới 10 giây). Kết nối hub,
    gọi `Watch(scanId)`; mất kết nối thì poll `GET /scans/{id}` mỗi 3 giây, dừng khi `completed`/`failed`.
-2. **Tóm tắt**: `RiskBadge` + điểm `81/100` + câu tiêu đề:
+2. **Tóm tắt**: `RiskBadge` + điểm `98/100` + câu tiêu đề:
    - Có dấu hiệu: "Tin này có {n} dấu hiệu rủi ro".
+   - Mức Cần thận trọng/Cao nhưng không có dấu hiệu chữ: "Tin này có điểm rủi ro {mức} do {ảnh dùng lại / giá
+     thấp bất thường / báo cáo cộng đồng} — xem chi tiết bên dưới".
    - Mức Thấp và không có dấu hiệu: "Chưa thấy dấu hiệu rủi ro rõ ràng".
 3. **Lời nhắc** (nguyên tắc 4), luôn hiển thị.
 4. **Dấu hiệu** (`EvidenceList`): tên tiêu chí, câu trích trong khung trích dẫn, căn cứ pháp lý nếu có,
    lời khuyên từ `criteria-tips.ts` (ví dụ `deposit_before_viewing` → "Chỉ đặt cọc sau khi đã xem phòng
-   và có giấy biên nhận ghi rõ thông tin hai bên").
+   và có giấy biên nhận ghi rõ thông tin hai bên"); tiêu chí quản trị viên thêm sau chưa có lời khuyên riêng
+   thì dùng lời khuyên chung "Kiểm tra trực tiếp trước khi chuyển tiền hoặc gửi giấy tờ".
 5. **Bốn tín hiệu** (`SignalBreakdown`): thanh ngang 0–100% cho mỗi tín hiệu; tín hiệu `null` hiện
    "Không áp dụng" kèm lý do (không có ảnh, chưa đủ 10 phòng để so giá…).
 6. **Ảnh dùng lại** (`ImageMatchCard`): "Ảnh số 1 xuất hiện ở 3 tin khác, 2 tin đã bị gỡ".
-7. **So sánh giá** (`PriceComparison`): "Giá nêu 1.000.000 ₫ thấp hơn 62% so với trung vị 2.600.000 ₫
-   của 14 phòng cùng khu vực".
+7. **So sánh giá** (`PriceComparison`, đọc `price.rentVnd` + `price.rentSource`): "Giá nêu 1.000.000 ₫ thấp
+   hơn 62% so với trung vị 2.600.000 ₫ của 14 phòng cùng khu vực"; giá trích từ chữ thì viết "Giá đọc được
+   trong nội dung …" để người dùng biết hệ thống tự hiểu giá.
 8. **Cộng đồng**: "Số điện thoại •••321 đã có 3 báo cáo được cán bộ xác nhận".
 9. Nút **Báo cáo** (khi có `report.create`) và **Kiểm tra tin khác**.
 10. Khi `failed`: "Chưa phân tích được tin này. Vui lòng thử lại sau ít phút." + mã lỗi nhỏ để hỗ trợ.
@@ -131,12 +140,21 @@ Thứ tự trên trang `/kiem-tra/[scanId]`:
 
 Độ tương phản chữ/nền tối thiểu 4,5:1 (WCAG AA).
 
+Nhãn loại báo cáo (US-406) — cũng tuân nguyên tắc không gắn chữ "lừa đảo" với một tin:
+
+| `category` | Nhãn hiển thị |
+|---|---|
+| `scam` | Có dấu hiệu gian lận, đòi tiền |
+| `misleading` | Thông tin sai sự thật |
+| `inappropriate` | Nội dung không phù hợp |
+| `other` | Lý do khác |
+
 ## Bản đồ
 
 - maplibre-gl + react-map-gl; style lấy từ `NEXT_PUBLIC_MAP_STYLE_URL` (mặc định nguồn tile vector
   miễn phí không cần key như OpenFreeMap), luôn hiển thị attribution OpenStreetMap.
-- Trang tìm tin: tối đa 200 marker, bấm marker mở thẻ tin; di chuyển bản đồ hiện nút "Tìm ở khu vực này"
-  (không tự gọi API mỗi lần kéo).
+- Trang tìm tin: marker của các tin trong trang kết quả hiện tại (≤ 50, theo `pageSize` của API), bấm marker
+  mở thẻ tin; di chuyển bản đồ hiện nút "Tìm ở khu vực này" (không tự gọi API mỗi lần kéo).
 - Tâm mặc định: cơ sở đào tạo người dùng chọn (`/meta/campuses`), nhớ lựa chọn trong `localStorage`
   (chỉ mã cơ sở, không dữ liệu cá nhân).
 
@@ -161,10 +179,14 @@ share_target: {
 
 - `public/sw.js` viết tay (không plugin), đăng ký chỉ ở production:
   - Precache `/offline`; điều hướng dùng network-first, mất mạng thì trả `/offline`.
-  - **Không cache** `/api/*`, `/hubs/*`, `/media/*` của giấy tờ.
+  - **Không cache** `/api/*` (gồm link xem giấy tờ `/api/v1/files/documents/*`) và `/hubs/*`; ảnh tin công
+    khai `/media/listing-images/*` để trình duyệt cache theo header của Caddy.
   - Bắt `POST /kiem-tra/chia-se`: đọc `formData`, lưu ảnh + chữ vào Cache Storage `share-target`
     dưới URL tạm, trả `Response.redirect("/kiem-tra?shared=1", 303)`. Trang `/kiem-tra` thấy `shared=1`
     thì đọc lại từ cache, điền form, xóa cache.
+  - Dự phòng khi service worker chưa chạy (vừa cài, bị cập nhật): `app/(public)/kiem-tra/chia-se/route.ts` nhận
+    `POST` và trả `303` về `/kiem-tra` kèm thông báo "Vui lòng chọn lại ảnh" (không lưu tệp phía máy chủ).
+  - Tham số `url` được chia sẻ chỉ ghép vào ô nội dung như chữ thường; **không** fetch (chống SSRF, 07-security.md).
 - Web Share Target chỉ chạy trên trình duyệt nhân Chromium của Android; iOS dùng nút "Tải ảnh" bình thường.
 
 ## Định dạng

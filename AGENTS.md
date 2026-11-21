@@ -42,6 +42,7 @@ make dev-up      # postgres, redis, garage, mailpit
 make migrate     # chạy db/migrations bằng TroViec.Migrator
 make api         # dotnet watch
 make worker      # uv run python -m troviec_worker consume
+make worker-embed # uv run python -m troviec_worker serve-embed (cần cho tìm kiếm câu tự nhiên)
 make web         # pnpm dev
 make gen-api     # sinh apps/web/lib/api/schema.d.ts từ /openapi/v1.json
 make test        # dotnet test + pytest + vitest
@@ -61,11 +62,15 @@ make test        # dotnet test + pytest + vitest
 7. Bảng/cột mới phải `GRANT` tường minh cho đúng role ngay trong migration đó.
 8. SQL luôn tham số hóa; ghi rõ schema `app.`; enum truyền chuỗi và cast `@Status::app.listing_status`; tên cột sắp xếp lấy từ whitelist.
 9. Đổi `listings.status` **chỉ** qua `ListingTransitionService` (ghi `listing_transitions` cùng transaction, kiểm `version`).
+   Ngoại lệ duy nhất: hai câu lệnh hàng loạt của job đêm ghi ở `docs/03-database.md` (mục Job đêm).
 10. Không UPDATE/DELETE bảng chỉ-thêm: `listing_transitions`, `assessments`, `assessment_flags`, `assessment_image_matches`, `document_access_logs`.
 
 **Bảo mật và riêng tư**
-11. Mọi endpoint khai báo `RequireAuthorization("<permission>")` hoặc `AllowAnonymous()` tường minh. Phân quyền theo **quyền**, không theo tên vai trò.
-12. Kiểm tra quyền sở hữu tài nguyên; tài nguyên người khác không được xem → `404`.
+11. Mọi endpoint khai báo `RequireAuthorization("<permission>")` hoặc `AllowAnonymous()` tường minh; riêng endpoint chỉ đụng
+    dữ liệu của chính người gọi (`/me`, `/auth/phone/*`) dùng `RequireAuthorization()` không kèm quyền. Phân quyền theo
+    **quyền**, không theo tên vai trò.
+12. Kiểm tra quyền sở hữu tài nguyên; tài nguyên người khác không được xem → `404`. Cán bộ không xử lý việc liên quan tới
+    chính mình (`moderation.conflict_of_interest`, BR-19).
 13. Không log mật khẩu, token, cookie, số điện thoại, email, số tài khoản, nội dung tin, câu trả lời LLM — chỉ log id.
 14. Văn bản chỉ gửi ra LLM sau khi qua `pipeline/pii.py`; không gửi ảnh ra LLM.
 15. Không commit bí mật; mọi cấu hình đọc từ biến môi trường (`.env.example` là danh sách đầy đủ).

@@ -8,11 +8,13 @@ LLM lỗi thì rơi về luật từ khóa chứ không làm hỏng cả lượt
 
 | Service (compose) | Lệnh | Việc | Bộ nhớ ước tính |
 |---|---|---|---|
-| `worker` | `python -m troviec_worker consume` | Đọc `troviec:scan-requested`, chạy pipeline chấm điểm | ~1,5 GB (CLIP, PhoBERT, Tesseract) |
+| `worker` | `python -m troviec_worker consume` | Đọc `troviec:scan-requested`, chạy pipeline chấm điểm | ~1 GB (CLIP, Tesseract); thêm ~0,6 GB khi bật PhoBERT |
 | `worker-embed` | `python -m troviec_worker serve-embed` | HTTP `/internal/embed` + đọc `troviec:listing-embed` | ~2,5 GB (BGE-M3 fp32) |
 | (thủ công) | `python -m troviec_worker embed-backfill` | Tính embedding cho tin còn thiếu hoặc đổi mô hình | — |
 
-Tách `worker-embed` để BGE-M3 chỉ nạp một lần. VPS đề xuất 4 vCPU / 8 GB RAM; thiếu RAM thì xem mục Rủi ro.
+Tách `worker-embed` để BGE-M3 chỉ nạp một lần. Toàn hệ thống cần khoảng 6 GB RAM: VPS 8 GB đủ khi chưa bật
+PhoBERT, nên ≥ 12 GB khi bật (08-deployment.md, mục VPS và Chi phí); thiếu RAM thì xem mục Rủi ro.
+Image worker build cho cả `linux/amd64` và `linux/arm64` (torch CPU, Tesseract, open_clip đều có bản arm64).
 
 ## Cấu trúc mã
 
@@ -53,18 +55,20 @@ Mỗi entry Redis Stream có hai field: `type` và `payload` (JSON). Stream đư
 - Đọc: `XREADGROUP GROUP ai-workers <hostname-pid> COUNT 1 BLOCK 5000`. Một tiến trình xử lý một việc
   một lúc; tăng song song bằng `docker compose up --scale worker=2`.
 - Thu hồi việc treo: mỗi 60 s `XAUTOCLAIM` các entry idle > 120 s. Entry giao quá 3 lần → ghi
-  `troviec:dead-letter`, đặt `scans.status = 'failed'`, `error_code = 'worker.max_retries'`, phát
-  `scan.completed` (failed), rồi `XACK`.
-- **Idempotent:** lượt đã `completed`/`failed` thì `XACK` và bỏ qua; ghi điểm bằng
-  `INSERT … ON CONFLICT (scan_id, aggregator_model_id) DO NOTHING`.
+  `troviec:dead-letter`, đặt `scans.status = 'failed'`, `error_code = 'worker.max_retries'`,
+  `completed_at = now()` (CHECK `ck_scans_completed_at`), phát `scan.completed` (failed), rồi `XACK`.
+  Với `troviec:listing-embed` chỉ ghi dead letter (không có lượt nào để đánh dấu).
+- **Idempotent:** nhận lại lượt đã `completed`/`failed` thì **phát lại** `scan.completed` với trạng thái hiện có
+  rồi `XACK` (không chấm lại); ghi điểm bằng `INSERT … ON CONFLICT (scan_id, aggregator_model_id) DO NOTHING`.
 - Thứ tự cuối mỗi việc: commit CSDL → `XADD scan-completed` → `XACK`. Chết giữa chừng thì việc được
-  giao lại và bước ghi điểm tự bỏ qua.
+  giao lại: chết trước commit thì chấm lại từ đầu; chết sau commit thì lần giao lại chỉ phát lại sự kiện —
+  nếu chỉ `XACK` như trước, API không bao giờ nhận `scan.completed` và tin kẹt ở `screening`.
 
 ## Pipeline một lượt sàng lọc
 
 ```mermaid
 flowchart LR
-    A[Nạp scan<br/>status=processing] --> B{Cache<br/>input_sha256?}
+    A[Nạp scan<br/>status=processing] --> B{Cache input_sha256?<br/>chỉ quick_check}
     B -- trúng --> W[Chép kết quả]
     B -- trượt --> C[OCR ảnh<br/>chỉ quick_check]
     C --> D[Chuẩn hóa chữ]
@@ -86,15 +90,24 @@ flowchart LR
 - Đầu vào: `quick_check` = `input_text` + ảnh trong `scan_images` (bucket `scan-images`);
   `listing` = `input_text` (bản chụp tiêu đề + mô tả lúc gửi) + ảnh trong `listing_images`
   (bucket `listing-images`) + giá, tọa độ, `is_self_contained` từ bảng con.
-- Cache: có lượt khác cùng `input_sha256`, `completed` trong 7 ngày, có kết quả của bộ gộp đang chạy
-  → chép `assessments`, `assessment_flags`, `assessment_image_matches` sang lượt này và kết thúc.
-  `input_sha256` do API tính: SHA-256 của `chuẩn_hóa(input_text) + "\n" + sha256 từng ảnh theo thứ tự`.
+- Cache (**chỉ lượt `quick_check`**): có lượt `quick_check` khác cùng `input_sha256`, `completed` trong 7 ngày,
+  có kết quả của bộ gộp đang chạy → chép `assessments`, `assessment_flags`, `assessment_image_matches`,
+  **`scan_identifiers`** (để báo cáo xác nhận sau này vẫn cộng bộ đếm cho đúng định danh) và `scan_images.ocr_text`
+  (theo `image_no`) sang lượt này, rồi kết thúc. Lượt `listing` không dùng cache vì tín hiệu giá, ảnh, cộng đồng
+  phụ thuộc dữ liệu tin và người đăng không nằm trong băm.
+- `input_sha256` do API tính: SHA-256 (UTF-8) của
+  `chuẩn_hóa(input_text) + "\n" + (claimed_rent_vnd hoặc "") + "\n" + (claimed_ward_code hoặc "") + "\n" + hex sha256 từng ảnh theo thứ tự`,
+  trong đó `chuẩn_hóa` giống bước 3 (NFC, gộp khoảng trắng, trim).
+- **Ngân sách thời gian:** mỗi lượt có hạn chót 8 s kể từ lúc worker nhận việc (chừa phần cho hàng đợi trong
+  chỉ tiêu p95 10 s). OCR các ảnh chạy song song tối đa 2 tiến trình, mỗi ảnh `timeout = min(10 s, còn lại − 3 s)`;
+  LLM `timeout = min(7 s, còn lại − 0,5 s)`. Hết ngân sách thì bỏ chữ của ảnh chưa OCR xong / dùng luật dự phòng,
+  ghi log `scanId` và bước bị cắt.
 
 ### 2. OCR (chỉ ảnh của Kiểm tra tin)
 
 Tesseract 5, gói `vie`, `--oem 1 --psm 6`. Tiền xử lý bằng Pillow: xoay theo EXIF, đổi xám, phóng lên
-1.200 px chiều ngang nếu nhỏ hơn, `autocontrast`. Timeout 10 s mỗi ảnh; lỗi một ảnh thì bỏ chữ của ảnh
-đó, ghi log, không làm hỏng lượt. Lưu kết quả vào `scan_images.ocr_text` (NULL nếu không đọc được chữ).
+1.200 px chiều ngang nếu nhỏ hơn, `autocontrast`. Timeout theo ngân sách ở bước 1 (tối đa 10 s mỗi ảnh); lỗi
+một ảnh thì bỏ chữ của ảnh đó, ghi log, không làm hỏng lượt. Lưu kết quả vào `scan_images.ocr_text` (NULL nếu không đọc được chữ).
 Ảnh tin đăng (ảnh phòng) không OCR. Phương án nâng cấp: PaddleOCR (so trong thí nghiệm).
 
 ### 3. Chuẩn hóa
@@ -116,9 +129,11 @@ Chạy trên văn bản **chưa che**, kết quả chỉ lưu dạng HMAC:
 PHONE_RE = re.compile(r"(?<!\d)(?:\+?84|0)[\s.\-]?[35789](?:[\s.\-]?\d){8}(?!\d)")
 ```
 
-`value_hmac = HMAC-SHA256(IDENTIFIER_HMAC_KEY, f"{kind}:{normalized}")`. Khóa dùng chung với API
-(API băm số điện thoại người đăng khi gửi duyệt). Ghi `identifiers` + `scan_identifiers` theo truy vấn
-ở 03-database.md. **Không** log giá trị gốc.
+`value_hmac = HMAC-SHA256(khóa, f"{kind}:{normalized}".encode("utf-8"))`, trong đó **khóa là các byte sau khi
+giải mã base64** của `IDENTIFIER_HMAC_KEY` (không phải chuỗi base64). Khóa dùng chung với API (API băm số điện
+thoại người đăng khi gửi duyệt) — hai bên phải cùng cách giải mã khóa và cùng chuỗi đầu vào, nếu không băm lệch
+nhau mà không báo lỗi; có một test vector chung (khóa, đầu vào, băm hex) ở cả test C# và pytest. Ghi `identifiers`
++ `scan_identifiers` theo truy vấn ở 03-database.md. **Không** log giá trị gốc.
 
 ### 5. Che PII
 
@@ -147,18 +162,27 @@ trước khi gửi bất cứ thứ gì ra LLM bên ngoài (07-security.md).
 Luật regex chạy trên văn bản đã che, không dấu, chữ thường, ví dụ:
 `bo qua (moi|cac|tat ca) (huong dan|chi dan)`, `ignore (all|previous|the above)`,
 `(he thong|ai|chatbot|mo hinh)\s+(hay|phai)\s+`, `cham (tin|bai) nay (an toan|thap|0)`,
-`system prompt`, `you are now`. Khớp → dấu hiệu `prompt_injection`, câu trích = câu chứa đoạn khớp.
-Bản thân dấu hiệu này đẩy điểm tối thiểu lên ngưỡng "Cao" (`injectionFloor` của bộ gộp).
+`system prompt`, `you are now`. Khớp → dấu hiệu `prompt_injection`, câu trích = câu tương ứng trong văn bản
+**đã che, còn dấu** (không lấy bản bỏ dấu), cắt còn ≤ 300 ký tự quanh đoạn khớp.
+Bản thân dấu hiệu này đẩy điểm tối thiểu lên ngưỡng "Cao" (`injectionFloor` của bộ gộp). Luật này luôn chạy,
+kể cả khi quản trị viên ngừng dùng tiêu chí `prompt_injection` cho LLM.
 
 ### 7. Tín hiệu chữ
 
-**LLM (khi có phiên bản `llm` đang chạy và có API key):**
+**LLM (khi có phiên bản `llm` đang chạy và có cài đặt dùng được):** với `openai-compatible/<model-id>`
+cần có `LLM_API_KEY` và `LLM_MODEL` phải **trùng** `<model-id>` của dòng đang chạy (lệch → chỉ dùng luật, log
+cảnh báo; tránh `assessments.llm_model_id` ghi một mô hình mà thực tế gọi mô hình khác); với `fake/deterministic`
+cần `LLM_FAKE=1` (chỉ dev/CI/E2E).
 
 - Bộ tiêu chí: các `criteria` đang dùng có `scope` khớp loại tin (`room`/`job`/`both`; Kiểm tra tin
   không biết loại thì lấy tất cả). Nạp từ CSDL mỗi 60 s, nên quản trị viên sửa tiêu chí không cần deploy.
-- Gọi một lần, `temperature = 0`, `max_tokens = 800`, **timeout 7 s, không thử lại** (giữ p95 ≤ 10 s);
-  lỗi hoặc quá giờ → dùng luật dự phòng, `llm_model_id = NULL`.
-- Ngân sách: bộ đếm Redis `llm:calls:{yyyyMMdd}`; vượt `LLM_DAILY_CALL_LIMIT` thì chỉ dùng luật.
+- Gọi một lần, `temperature = 0`, `max_tokens = 1500` (đủ cho tối đa 10 dấu hiệu × 200 ký tự tiếng Việt),
+  **timeout theo ngân sách (tối đa 7 s), không thử lại** (giữ p95 ≤ 10 s); lỗi, quá giờ, sai schema hoặc
+  nhà cung cấp trả `429` (vượt hạn mức gói miễn phí) → dùng luật dự phòng, `llm_model_id = NULL`.
+- Ngân sách: bộ đếm Redis `llm:calls:{yyyyMMdd}` (ngày theo giờ Việt Nam); vượt `LLM_DAILY_CALL_LIMIT` thì chỉ
+  dùng luật. Đặt giới hạn này thấp hơn hạn mức ngày của gói nhà cung cấp (08-deployment.md, mục Chi phí).
+- Trước khi nhúng vào prompt, thay mọi chuỗi `<TIN` và `</TIN` trong văn bản (không phân biệt hoa thường) bằng
+  `[TIN` để nội dung tin không tự "đóng" khối dữ liệu.
 
 Prompt hệ thống (file `llm/prompt.py`, version `prompt-v1`; đổi prompt = đổi version + migration đăng ký mô hình):
 
@@ -210,13 +234,19 @@ nếu không hỗ trợ, nhúng schema vào prompt và kiểm bằng pydantic):
 
 **Kiểm câu trích (bắt buộc):** chuẩn hóa cả câu trích và văn bản đã che (NFC, `casefold`, gộp khoảng
 trắng, bỏ dấu câu ở hai đầu). Câu trích ngắn hơn 6 ký tự hoặc không là chuỗi con → **loại dấu hiệu**.
-Một tiêu chí chỉ giữ câu trích đầu tiên hợp lệ (khóa chính `(assessment_id, criterion_id)`).
-`text_signal = overall_risk` của LLM.
+Một tiêu chí chỉ giữ câu trích đầu tiên hợp lệ (khóa chính `(assessment_id, criterion_id)`); câu trích lưu
+nguyên văn từ văn bản đã che, tối đa 300 ký tự (`evidence_text` là `VARCHAR(500)`).
+`text_signal = overall_risk` của LLM **nếu còn ít nhất một dấu hiệu hợp lệ**; không còn dấu hiệu nào thì
+`text_signal = min(overall_risk, 0,3)` — điểm chỉ dựa trên chữ (≤ 26, mức Thấp) không được cao mà không có
+bằng chứng (nguyên tắc 3, 00-overview.md).
 
 **Luật dự phòng** (`rules.py`, dùng khi không có LLM): mỗi tiêu chí có danh sách regex trên văn bản không
 dấu, ví dụ `upfront_fee`: `phi (ho so|dong phuc|dao tao|kich hoat)`, `(dat coc|tien coc|bao dam) .{0,20}(nhan viec|lam viec)`;
 `deposit_before_viewing`: `(chuyen|ck|gui) (coc|tien giu cho)`, `giu cho .{0,20}(chuyen|ck)`.
-`text_signal = min(1, 0.35 × số tiêu chí khớp)`; câu trích là câu chứa đoạn khớp.
+`text_signal = min(1, 0.35 × số tiêu chí khớp)`; câu trích là câu tương ứng trong văn bản đã che (còn dấu), ≤ 300 ký tự.
+Chỉ 7 tiêu chí seed có luật; tiêu chí quản trị viên thêm sau chỉ được LLM chấm. Với `agg-v0`, một tiêu chí
+khớp bằng luật cho điểm 30 (Thấp), hai tiêu chí cho 65 (Cần thận trọng) — muốn kịch bản E2E ra mức Cao thì dùng
+LLM giả (`LLM_FAKE=1`, mục Sổ đăng ký mô hình).
 
 **PhoBERT** (giai đoạn sau, thành phần `text_classifier`): `vinai/phobert-base-v2` tinh chỉnh 3 lớp
 trên tập train; đầu vào phải tách từ (underthesea `word_tokenize(..., format="text")`). Xác suất lớp
@@ -227,24 +257,30 @@ trên tập train; đầu vào phải tách từ (underthesea `word_tokenize(...
 - Mỗi ảnh (≤ 10): pHash `imagehash.phash(img, hash_size=8)` → 64 bit → đổi sang `BIGINT` có dấu;
   CLIP `open_clip` `ViT-B-32` / `laion2b_s34b_b79k`, vector chuẩn hóa L2, 512 chiều.
 - Lượt `listing`: ghi `phash`, `clip_embedding`, `clip_model_id` vào `listing_images` nếu còn thiếu.
-- Tìm ảnh khớp trong `listing_images` (loại ảnh của chính tin đang chấm): Hamming ≤ 10 **hoặc**
-  cosine ≥ 0,92 (truy vấn ở 03-database.md). Ghi tối đa 10 khớp vào `assessment_image_matches`.
+- Tìm ảnh khớp trong `listing_images` (loại ảnh của chính tin đang chấm; CLIP chỉ so vector cùng
+  `clip_model_id` đang chạy): Hamming ≤ 10 **hoặc** cosine ≥ 0,92 (truy vấn ở 03-database.md). Ghi tối đa
+  10 khớp vào `assessment_image_matches` (tính đủ cả `hamming_distance` lẫn `clip_similarity` cho mỗi khớp).
 - Ảnh của Kiểm tra tin **không** đưa vào kho đối chiếu (dữ liệu của khách, xóa sau 30 ngày).
+
+Lấy mức cao nhất trong các khớp:
 
 | Trường hợp khớp | `image_signal` |
 |---|---|
 | Khớp tin đang `hidden`, `removed` hoặc `rejected` | 1,0 |
 | Lượt `listing`: khớp tin của người đăng khác | 0,8 |
 | Lượt `quick_check`: khớp bất kỳ tin nào trên nền tảng | 0,5 |
+| Lượt `listing`: chỉ khớp tin khác của **chính người đăng** (một chủ, nhiều phòng cùng nhà) | 0,0 |
 | Không khớp | 0,0 |
 | Không có ảnh | NULL |
 
 ### 9. Tín hiệu giá (chỉ tin phòng)
 
 - Giá: lượt `listing` lấy `monthly_rent_vnd`; Kiểm tra tin lấy `claimed_rent_vnd`, nếu trống thì trích
-  từ chữ: `(\d+)tr(\d)` → "1tr8" = 1.800.000; `(\d+(?:[.,]\d+)?)\s*(tr|triệu|trieu)` × 1.000.000;
-  `(\d{1,3}(?:[.,]\d{3})+)\s*(đ|vnd|vnđ)?`; `(\d+)\s*k\b` × 1.000; chỉ nhận 300.000–20.000.000 và ưu tiên số
-  gần các từ `giá`, `thuê`, `/tháng`.
+  từ chữ — **chỉ khi** văn bản có từ khóa thuê phòng (`thuê`, `phòng`, `trọ`, `cọc`), để tin việc làm có
+  "lương 5 triệu/tháng" không bị so nhầm với giá phòng: `(\d+)tr(\d)` → "1tr8" = 1.800.000;
+  `(\d+(?:[.,]\d+)?)\s*(tr|triệu|trieu)` × 1.000.000; `(\d{1,3}(?:[.,]\d{3})+)\s*(đ|vnd|vnđ)?`; `(\d+)\s*k\b` × 1.000;
+  chỉ nhận 300.000–20.000.000 và ưu tiên số gần các từ `giá`, `thuê`, `/tháng`.
+- Giá đã dùng ghi vào `assessments.price_vnd` (thêm ở `0003_review_fixes.sql`) để giao diện hiện "Giá nêu …".
 - Mẫu so sánh: tin phòng `verified`/`expired` cập nhật trong 180 ngày, cùng `is_self_contained` (nếu biết),
   trong bán kính 1 km (lượt `listing`) hoặc cùng `ward_code` (Kiểm tra tin có `claimed_ward_code`).
 - Dưới 10 mẫu → `price_signal = NULL` (không đoán).
@@ -282,29 +318,30 @@ Bộ gộp đang chạy lấy từ `model_versions` (thành phần `aggregator`)
 risk  = 1 − Π (1 − maxContribution[k] × signal[k])     với mọi tín hiệu khác NULL
 risk += min(flagBonusCap, flagBonusPerExtraFlag × max(0, số_dấu_hiệu − 1))
 nếu có dấu hiệu prompt_injection: risk = max(risk, injectionFloor)
-score = round(100 × min(1, risk))
+score = floor(100 × min(1, risk) + 0,5)      # làm tròn nửa lên; KHÔNG dùng round() của Python (làm tròn kiểu ngân hàng: round(76.5) = 76)
 risk_level = high nếu score ≥ thresholds.high; caution nếu ≥ thresholds.caution; còn lại low
 ```
 
-Ví dụ: chỉ chữ `0,9` → 77 (Cao); chữ `0,5` → 43 (Cần thận trọng); chữ `0,5` + cộng đồng 3 báo cáo → 78 (Cao).
+Ví dụ (đã tính lại bằng Python): chỉ chữ `0,9` → 77 (Cao); chữ `0,5` → 43 (Cần thận trọng); chữ `0,5` + cộng
+đồng 3 báo cáo → 78 (Cao); chữ `0,9` + ảnh `1,0` + giá `0,95` + cộng đồng `0,78` → 98 (Cao, ví dụ ở 04-api.md).
 
 **`agg-v1` (hồi quy logistic, sau khi có dữ liệu):** đặc trưng `text_signal`, `phobert_prob`, one-hot từng
 tiêu chí, `image_signal`, `price_signal` + cờ thiếu, `community_signal` + cờ thiếu. Huấn luyện bằng
 scikit-learn trong `research/`, xuất JSON `{"type": "logistic", "features": [...], "coef": [...],
 "intercept": ..., "thresholds": {...}}`; worker chỉ cần numpy để tính. Ngưỡng `high` chọn trên tập
-validation: Recall lớn nhất với Precision ≥ 0,80. Kích hoạt bằng migration đăng ký + quản trị viên bấm kích hoạt.
+validation: Recall lớn nhất với Precision ≥ 0,80. Kích hoạt bằng migration đăng ký (số kế tiếp) + quản trị viên bấm kích hoạt.
 
 ### 12. Ghi kết quả
 
-Một transaction: `INSERT assessments … ON CONFLICT DO NOTHING RETURNING id` (không có dòng trả về = đã
-chấm rồi, bỏ phần còn lại) → `assessment_flags` → `assessment_image_matches` → `UPDATE scans SET
+Một transaction: `INSERT assessments (…, price_vnd) … ON CONFLICT DO NOTHING RETURNING id` (không có dòng trả
+về = đã chấm rồi, bỏ phần còn lại) → `assessment_flags` → `assessment_image_matches` → `UPDATE scans SET
 status = 'completed', completed_at = now()`. Sau commit: `XADD troviec:scan-completed`, rồi `XACK`.
 
 ### Lỗi và mã lỗi
 
 | Lỗi | Xử lý | `error_code` khi bỏ cuộc |
 |---|---|---|
-| LLM lỗi / quá 7 s / sai schema | Rơi về luật, lượt vẫn `completed` | — |
+| LLM lỗi / quá giờ / sai schema / `429` hết hạn mức | Rơi về luật, lượt vẫn `completed` | — |
 | OCR lỗi một ảnh | Bỏ chữ ảnh đó | — |
 | Không tải được ảnh từ S3 | Thử lại qua cơ chế giao lại | `storage.object_missing` |
 | CSDL / Redis lỗi tạm thời | Không `XACK`, chờ giao lại | `worker.max_retries` |
@@ -330,19 +367,23 @@ status = 'completed', completed_at = now()`. Sau commit: `XADD troviec:scan-comp
 | `image_embedding` | `open_clip/ViT-B-32` / `laion2b_s34b_b79k` | `ml/clip.py` |
 | `text_embedding` | `BAAI/bge-m3` / `1` | `ml/text_embed.py` |
 | `aggregator` | `weighted-rules` / `agg-v0` | `models/aggregator/agg-v0.json` |
-| `llm` | `openai-compatible/<model-id>` / `prompt-v1` | `llm/openai_compat.py` + `llm/prompt.py` |
+| `llm` | `openai-compatible/<model-id>` / `prompt-v1` | `llm/openai_compat.py` + `llm/prompt.py`; `LLM_MODEL` phải bằng `<model-id>` |
+| `llm` | `fake/deterministic` / `prompt-v1` | `llm/fake.py`, chỉ khi `LLM_FAKE=1` |
 | `text_classifier` | `phobert-base-v2-troviec` / `v1` | `ml/phobert.py`, trọng số trong `MODEL_DIR` |
 
-Seed chỉ có 4 dòng đầu. Khi chọn nhà cung cấp LLM, thêm migration:
+Seed chỉ có 4 dòng đầu. Khi chọn nhà cung cấp LLM (T2.4), thêm migration với **số kế tiếp** (`0003` đã dùng
+cho `0003_review_fixes.sql`):
 
 ```sql
--- db/migrations/0003_register_llm.sql
+-- db/migrations/NNNN_register_llm.sql (ví dụ 0004_register_llm.sql)
 INSERT INTO app.model_versions (component, name, version, is_active, activated_at)
 VALUES ('llm', 'openai-compatible/<model-id>', 'prompt-v1', true, now());
 ```
 
-Không có LLM đang chạy → worker chỉ dùng luật (chạy được ở dev mà không cần API key).
-Kiểm thử dùng `llm/fake.py` trả kết quả cố định theo băm của đầu vào.
+Không có LLM đang chạy → worker chỉ dùng luật (chạy được ở dev mà không cần API key, và là phương án 0 đồng).
+Kiểm thử đơn vị dùng `llm/fake.py` trả kết quả cố định theo băm của đầu vào. Môi trường E2E đặt `LLM_FAKE=1`
+và tự đăng ký + kích hoạt dòng `llm` `fake/deterministic` bằng script của `apps/web/e2e` — dòng này **không**
+nằm trong migration hay seed demo, để không bao giờ có mặt ở production.
 
 ## Đánh giá (thư mục `research/`)
 
@@ -358,9 +399,11 @@ Kiểm thử dùng `llm/fake.py` trả kết quả cố định theo băm của 
 
 - Dữ liệu gán nhãn nằm trong schema `research` (migration riêng ở giai đoạn AI):
   `research.samples` (văn bản đã che, nguồn, `group_key`, `split`), `research.sample_labels`
-  (người gán, mức rủi ro), `research.sample_flags` (người gán, mã tiêu chí). Chỉ role của sinh viên thực hiện truy cập.
-- Chia train/validation/test **theo nhóm** `group_key` (HMAC số điện thoại hoặc cụm ảnh trùng) để kẻ
-  gian đăng nhiều biến thể không rò rỉ giữa các tập.
+  (người gán, mức rủi ro), `research.sample_flags` (người gán, mã tiêu chí). Chỉ role `app_research` (người
+  làm đồ án) truy cập; role này do `db/init/00_init.sh` tạo, migration chỉ GRANT.
+- Gán nhãn 300–500 tin thật, chia train/validation/test 60/20/20 **theo nhóm** `group_key` (HMAC số điện thoại
+  hoặc cụm ảnh trùng) để kẻ gian đăng nhiều biến thể không rò rỉ giữa các tập; tập test ≥ 100 tin. Vì tập
+  test nhỏ, mọi chỉ số báo cáo kèm khoảng tin cậy 95% (bootstrap 1.000 lần trên tập test).
 - Người thứ hai gán lại 20% mẫu; Cohen's kappa ≥ 0,7 mới dùng.
 - Dữ liệu sinh tổng hợp chỉ dùng để huấn luyện, không bao giờ để đánh giá.
 - Mỗi script ghi kết quả vào `research/results/<mã>-<ngày>.json` kèm phiên bản mô hình và commit Git.
@@ -369,7 +412,8 @@ Kiểm thử dùng `llm/fake.py` trả kết quả cố định theo băm của 
 
 | Rủi ro | Dấu hiệu sớm | Phương án |
 |---|---|---|
-| Thiếu RAM khi chạy BGE-M3 + CLIP + PhoBERT trên VPS 8 GB | OOM kill, swap tăng | Tạm tắt PhoBERT; nâng VPS 16 GB; đổi sang mô hình embedding nhỏ hơn (cần migration đổi `VECTOR(1024)`) |
+| Thiếu RAM khi chạy BGE-M3 + CLIP + PhoBERT trên VPS 8 GB | OOM kill, swap tăng | Tạm tắt PhoBERT; dùng VPS ≥ 12 GB (gói ARM miễn phí, 08-deployment.md); đổi sang mô hình embedding nhỏ hơn (cần migration đổi `VECTOR(1024)`) |
+| VPS ARM miễn phí ít nhân (2 OCPU) làm OCR/CLIP chậm | p95 > 10 s ngay ở T2.7 | Đo sớm; giảm song song OCR; chuyển VPS 4 vCPU trả phí |
 | OCR tiếng Việt sai nhiều trên ảnh mờ | Tỉ lệ ký tự sai cao trên tập mẫu | Hướng dẫn chụp màn hình gốc; cho dán chữ; thử PaddleOCR trong E1 |
 | LLM chậm làm vỡ p95 | p95 > 10 s | Timeout 7 s + luật dự phòng; cache theo `input_sha256`; chọn mô hình nhanh |
 | Câu chèn qua mặt LLM | E4 > 10% bị hạ mức | Tách dữ liệu khỏi lệnh; bắt buộc câu trích; luật regex độc lập; `injectionFloor` |
