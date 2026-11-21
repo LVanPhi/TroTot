@@ -56,7 +56,9 @@ jobs:
       - name: Second run applies nothing
         run: dotnet run --project apps/api/src/TroViec.Migrator -- migrate | tee out.txt && grep -q "database is up to date" out.txt
       - name: Migrator tests
-        run: dotnet test --project apps/api/tests/TroViec.Migrator.Tests
+        # Run from apps/api so global.json (Microsoft.Testing.Platform runner) applies.
+        working-directory: apps/api
+        run: dotnet test --project tests/TroViec.Migrator.Tests
 
   api:
     runs-on: ubuntu-24.04
