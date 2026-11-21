@@ -7,6 +7,7 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
     "boto3>=1.44.9",
     "fastapi>=0.165.0",
+    "httpx>=0.28.1",
     "pillow>=13.0.0",
     "psycopg[binary,pool]>=3.3.9",
     "pydantic>=2.14.4",
@@ -58,7 +59,7 @@ select = ["E", "F", "I", "B", "UP", "SIM", "ANN", "S", "LOG"]
 ignore = ["S101"]  # assert is fine in tests
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["ANN", "S"]
+"tests/**" = ["ANN", "S", "E501"]  # long SQL literals in tests
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

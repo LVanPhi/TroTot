@@ -1,18 +1,21 @@
-"""One scan.requested job. Order at the end of every job: commit DB -> XADD scan-completed -> XACK.
+"""One scan.requested job (docs/05-ai-worker.md). Order at the end: commit DB -> XADD scan-completed -> XACK.
 
-Steps 1-6 (text analysis, jobs/text_steps.py) run for every job; scoring (steps 7-12) arrives in T2.4.
-Until then the job only finishes a scan when WORKER_FAKE_PIPELINE=1, writing a placeholder assessment
-with score 0.
+Steps implemented: 1 (load, processing, cache), 2-6 (jobs/text_steps.py), 7 text signal, 11
+aggregate, 12 write.
+Image (8), price (9) and community (10) signals arrive in later tasks and stay NULL until then.
 """
 
 import logging
+from dataclasses import dataclass
 from typing import Any
 
 from psycopg_pool import ConnectionPool
 
-from troviec_worker.jobs import text_steps
+from troviec_worker.jobs import scoring, text_steps
+from troviec_worker.llm.base import LlmClient
+from troviec_worker.pipeline import aggregate, text_signal
 from troviec_worker.pipeline.budget import Budget
-from troviec_worker.registry import Registry
+from troviec_worker.registry import ModelVersion, Registry
 from troviec_worker.streams import SCAN_COMPLETED, Message, StreamConsumer, publish
 
 log = logging.getLogger(__name__)
@@ -22,16 +25,20 @@ MAX_RETRIES_ERROR = "worker.max_retries"
 MODEL_UNAVAILABLE_ERROR = "worker.model_unavailable"
 
 
-class PipelineNotReadyError(Exception):
-    """Raised when the real pipeline is needed but not implemented yet; the job is left un-acked."""
+@dataclass(frozen=True)
+class JobDeps:
+    text: text_steps.PipelineDeps
+    scoring: scoring.ScoringDeps
 
 
 def load_scan(pool: ConnectionPool, scan_id: int) -> dict[str, Any] | None:
     with pool.connection() as conn:
         return conn.execute(
             """
-            SELECT id, public_id, source::text AS source, listing_id, status::text AS status
-            FROM app.scans WHERE id = %s
+            SELECT s.id, s.public_id, s.source::text AS source, s.listing_id, s.status::text AS status,
+                   l.listing_type::text AS listing_type
+            FROM app.scans s LEFT JOIN app.listings l ON l.id = s.listing_id
+            WHERE s.id = %s
             """,
             (scan_id,),
         ).fetchone()
@@ -48,14 +55,8 @@ def completed_event(scan: dict[str, Any]) -> dict[str, Any]:
 
 
 def handle(
-    message: Message,
-    consumer: StreamConsumer,
-    pool: ConnectionPool,
-    registry: Registry,
-    fake_pipeline: bool,
-    deps: text_steps.PipelineDeps | None = None,
+    message: Message, consumer: StreamConsumer, pool: ConnectionPool, registry: Registry, deps: JobDeps
 ) -> None:
-    """`deps=None` skips the text steps (tests of the queue mechanics only)."""
     budget = Budget()  # 8 s from the moment the worker takes the job
     scan_id = int(message.payload["scanId"])
     scan = load_scan(pool, scan_id)
@@ -70,18 +71,33 @@ def handle(
         _finish(consumer, message, scan, replay=True)
         return
 
-    text_steps.mark_processing(pool, scan_id)
-    if deps is not None:
-        text_steps.analyse(pool, scan, deps, budget)
-
-    if not fake_pipeline:
-        raise PipelineNotReadyError("scoring pipeline not implemented yet (T2.x); set WORKER_FAKE_PIPELINE=1")
-
     aggregator = registry.active("aggregator")
-    if aggregator is None:
+    config = _aggregator_config(aggregator)
+    if aggregator is None or config is None:
         _fail(pool, scan_id, MODEL_UNAVAILABLE_ERROR)
-    else:
-        _write_fake_assessment(pool, scan_id, aggregator.id)
+        _finish(consumer, message, load_scan(pool, scan_id) or scan, replay=False)
+        return
+
+    text_steps.mark_processing(pool, scan_id)
+    if scan["source"] == "quick_check" and scoring.copy_from_cache(pool, scan, aggregator.id):
+        _finish(consumer, message, load_scan(pool, scan_id) or scan, replay=False)
+        return
+
+    analysis = text_steps.analyse(pool, scan, deps.text, budget)
+    kind = scan["listing_type"] or "unknown"
+    criteria = deps.scoring.criteria.for_kind(kind)
+    llm, llm_version = _llm_for_this_scan(registry, deps.scoring, consumer)
+    outcome = text_signal.compute(
+        analysis.masked_text, analysis.injections, criteria, llm, budget.llm_timeout(), kind
+    )
+    result = aggregate.score(
+        config,
+        {"text": outcome.signal},
+        flag_count=len(outcome.flags),
+        has_injection=any(code == text_signal.INJECTION_CODE for code, _ in outcome.flags),
+    )
+    llm_model_id = llm_version.id if outcome.llm_used and llm_version else None
+    scoring.write_result(pool, scan_id, aggregator.id, llm_model_id, outcome, result)
     _finish(consumer, message, load_scan(pool, scan_id) or scan, replay=False)
 
 
@@ -97,23 +113,27 @@ def dead_letter(message: Message, consumer: StreamConsumer, pool: ConnectionPool
     log.warning("dead-lettered", extra={"scan_id": scan_id, "message_id": message.id})
 
 
-def _write_fake_assessment(pool: ConnectionPool, scan_id: int, aggregator_id: int) -> None:
-    with pool.connection() as conn, conn.transaction():
-        conn.execute(
-            """
-            INSERT INTO app.assessments (scan_id, aggregator_model_id, score, risk_level)
-            VALUES (%s, %s, 0, 'low')
-            ON CONFLICT (scan_id, aggregator_model_id) DO NOTHING
-            """,
-            (scan_id, aggregator_id),
-        )
-        conn.execute(
-            """
-            UPDATE app.scans SET status = 'completed', completed_at = now()
-            WHERE id = %s AND status NOT IN ('completed', 'failed')
-            """,
-            (scan_id,),
-        )
+def _aggregator_config(version: ModelVersion | None) -> aggregate.AggregatorConfig | None:
+    """No local implementation for the running aggregator version → worker.model_unavailable."""
+    if version is None:
+        return None
+    try:
+        return aggregate.load(version.version)
+    except (FileNotFoundError, ValueError, KeyError):
+        log.error("aggregator version has no implementation", extra={"version": version.version})
+        return None
+
+
+def _llm_for_this_scan(
+    registry: Registry, deps: scoring.ScoringDeps, consumer: StreamConsumer
+) -> tuple[LlmClient | None, ModelVersion | None]:
+    selected = scoring.select_llm(registry, deps.settings)
+    if selected is None:
+        return None, None
+    if not scoring.take_llm_call(consumer.client, deps.settings.llm_daily_call_limit):
+        log.warning("daily llm budget used up; using rules")
+        return None, None
+    return selected
 
 
 def _fail(pool: ConnectionPool, scan_id: int, error_code: str) -> None:

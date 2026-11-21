@@ -18,6 +18,7 @@ COPY pyproject.toml uv.lock README.md ./
 RUN uv sync --frozen --no-dev --extra ml --no-install-project
 
 COPY src ./src
+COPY models ./models
 RUN uv sync --frozen --no-dev --extra ml
 
 RUN useradd --system --uid 10001 worker

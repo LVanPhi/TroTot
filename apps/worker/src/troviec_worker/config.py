@@ -38,7 +38,6 @@ class Settings(BaseSettings):
 
     internal_api_token: str = ""
     model_dir: Path = Path("./.models")
-    worker_fake_pipeline: bool = False
     log_level: str = "INFO"
 
     # Queue tuning (docs/05-ai-worker.md, Hợp đồng hàng đợi); not meant to change per environment.

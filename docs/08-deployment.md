@@ -288,7 +288,6 @@ ASP.NET Core đọc khóa lồng bằng `__` (ví dụ `Jwt__SigningKey`).
 | `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` | worker | Nhà cung cấp OpenAI-compatible; để trống = chỉ dùng luật (0 đồng). `LLM_MODEL` phải trùng `<model-id>` của dòng `llm` đang chạy |
 | `LLM_TIMEOUT_SECONDS`, `LLM_DAILY_CALL_LIMIT` | worker | `7`, `800` (thấp hơn hạn mức ngày của gói miễn phí đang dùng) |
 | `LLM_FAKE` | worker | `1` = dùng `llm/fake.py` (chỉ dev/CI/E2E); production luôn `0` |
-| `WORKER_FAKE_PIPELINE` | worker | `1` = khung T0.5 chấm giả điểm 0; bỏ khi pipeline thật xong (T2.4) |
 | `LOG_LEVEL` | worker | `INFO` |
 | `INTERNAL_API_TOKEN` | worker-embed | Bằng `Embed__InternalToken` |
 | `MODEL_DIR`, `HF_HOME` | worker | `/models`, `/models/hf` |

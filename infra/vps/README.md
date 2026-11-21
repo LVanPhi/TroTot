@@ -104,7 +104,7 @@ Giá trị bắt buộc khác với dev:
 | `NEXT_PUBLIC_API_BASE_URL` | để trống (cùng origin qua Caddy) |
 | `Sms__Provider` | `none` |
 | `Smtp__*` | Brevo SMTP (`smtp-relay.brevo.com:587`) |
-| `WORKER_FAKE_PIPELINE`, `LLM_FAKE` | `0` |
+| `LLM_FAKE` | `0` |
 
 `POSTGRES_HOST_PORT` và `ForwardedHeaders__KnownNetworks` không cần: production không mở cổng Postgres, còn mạng proxy
 tin cậy đã ghi trong `docker-compose.prod.yml` (`172.30.0.0/24`).
