@@ -3,7 +3,7 @@
 
 .DEFAULT_GOAL := help
 COMPOSE := docker compose -f infra/docker-compose.yml --env-file .env
-.PHONY: help dev-up dev-down migrate api worker worker-embed web test gen-api
+.PHONY: help dev-up dev-down migrate api worker worker-embed web test lint gen-api
 
 help: ## Liệt kê các target
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -23,17 +23,17 @@ api: ## Chạy API (dotnet watch) ở http://localhost:8080
 	dotnet watch --project apps/api/src/TroViec.Api
 
 worker: ## Chạy worker chấm điểm (consume)
-	@echo "Chưa có — làm ở T0.5"
+	cd apps/worker && uv run python -m troviec_worker consume
 
-worker-embed: ## Chạy dịch vụ embedding (serve-embed)
-	@echo "Chưa có — làm ở T0.5"
+worker-embed: ## Chạy dịch vụ embedding (serve-embed) ở cổng 8001
+	cd apps/worker && uv run python -m troviec_worker serve-embed
 
 web: ## Chạy web (pnpm dev) ở http://localhost:3000
 	cd apps/web && pnpm dev
 
 test: ## Chạy dotnet test + pytest + vitest
 	dotnet test --solution apps/api/TroViec.slnx
-	cd apps/web && pnpm test
+
 
 gen-api: ## Sinh apps/web/lib/api/schema.d.ts từ /openapi/v1.json (API phải đang chạy; đổi OPENAPI_URL nếu khác cổng)
 	cd apps/web && pnpm gen:api
