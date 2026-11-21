@@ -231,7 +231,7 @@ project; cập nhật bản vá bảo mật hằng tháng (Dependabot).
 
 | Lớp | Công nghệ |
 |---|---|
-| Backend | .NET 10 (LTS), ASP.NET Core Minimal API, Npgsql, Dapper, Pgvector (.NET, có handler cho Dapper), FluentValidation, StackExchange.Redis, AWSSDK.S3, MailKit, Microsoft.AspNetCore.Authentication.JwtBearer, Konscious.Security.Cryptography.Argon2, SixLabors.ImageSharp¹, DbUp (dbup-postgresql), Microsoft.AspNetCore.OpenApi + Scalar.AspNetCore |
+| Backend | .NET 10 (LTS), ASP.NET Core Minimal API, Npgsql, Dapper, Pgvector (.NET, có handler cho Dapper), FluentValidation, StackExchange.Redis, AWSSDK.S3, MailKit, Microsoft.AspNetCore.Authentication.JwtBearer, Konscious.Security.Cryptography.Argon2, SkiaSharp¹ (+ SkiaSharp.NativeAssets.Linux.NoDependencies), DbUp (dbup-postgresql), Microsoft.AspNetCore.OpenApi + Scalar.AspNetCore |
 | Kiểm thử .NET | xUnit v3, Testcontainers (PostgreSQL, Redis), Shouldly² |
 | CSDL | PostgreSQL 18, PostGIS 3 (gói PGDG, đã thử 3.7.0), pgvector 0.8.x (đã thử 0.8.7) — image tự build từ `postgres:18` (đa kiến trúc). Không dùng `postgis/postgis:18-3.6` vì image này chỉ có bản amd64 |
 | Hàng đợi / cache | Redis 8 (hoặc Valkey 8) |
@@ -242,6 +242,8 @@ project; cập nhật bản vá bảo mật hằng tháng (Dependabot).
 | Kiểm thử web | Vitest + Testing Library (jsdom), Playwright |
 | Hạ tầng | Docker Compose, Docker buildx (amd64 + arm64), Caddy 2, GitHub Actions, GHCR, WAL-G, rclone, k6, OWASP ZAP |
 
-¹ ImageSharp dùng Six Labors Split License: miễn phí cho dự án mã nguồn mở và phi thương mại như đồ án;
-nếu thương mại hóa phải xem lại giấy phép hoặc chuyển sang SkiaSharp.
+¹ SkiaSharp (giấy phép MIT, có bản native linux-x64 và linux-arm64). Không dùng ImageSharp: bản 4.x đòi license key
+khi build Release, còn bản 3.1.x không cần key thì có lỗ hổng mức High chưa vá (11/2026). Với AWSSDK.S3 bản 4, client
+phải đặt `RequestChecksumCalculation`/`ResponseChecksumValidation = WHEN_REQUIRED` và `UseChunkEncoding = false` khi
+ghi, nếu không Garage từ chối với "Invalid payload signature".
 ² Không dùng FluentAssertions bản 8 trở lên vì đã chuyển sang giấy phép thương mại.

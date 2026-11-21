@@ -36,6 +36,9 @@ public static class ServiceSetup
                 ForcePathStyle = true,
                 Timeout = TimeSpan.FromSeconds(3),
                 MaxErrorRetry = 0,
+                // AWSSDK v4 adds CRC trailing checksums by default; Garage rejects them ("Invalid payload signature").
+                RequestChecksumCalculation = RequestChecksumCalculation.WHEN_REQUIRED,
+                ResponseChecksumValidation = ResponseChecksumValidation.WHEN_REQUIRED,
             };
             return new AmazonS3Client(new BasicAWSCredentials(s3["AccessKey"], s3["SecretKey"]), config);
         });

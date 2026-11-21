@@ -72,8 +72,10 @@ Mỗi mã quyền là một policy cùng tên (`Infrastructure/Auth/Permissions.
 - **Tệp tải lên**:
   1. Kiểm magic bytes (JPEG `FF D8 FF`, PNG `89 50 4E 47`, WebP `RIFF….WEBP`, PDF `%PDF-`), bỏ qua đuôi file
      và `Content-Type` client gửi.
-  2. Giải mã ảnh bằng ImageSharp với giới hạn 40 megapixel (chống decompression bomb); lỗi → `image.unsupported_type`.
-  3. Mã hóa lại sang WebP chất lượng 82, cạnh dài ≤ 2.048 px, xoay theo EXIF rồi **xóa toàn bộ metadata**.
+  2. Đọc kích thước từ header (SkiaSharp `SKCodec`) và từ chối ảnh quá 40 megapixel **trước khi giải mã** (chống
+     decompression bomb); giải mã lỗi → `image.unsupported_type`. Tệp quá 5 MB bị dừng đọc ngay → `image.too_large`.
+  3. Mã hóa lại sang WebP chất lượng 82, cạnh dài ≤ 2.048 px, xoay theo EXIF rồi **xóa toàn bộ metadata** (bộ mã hóa
+     không ghi EXIF/ICC/XMP). `sha256` lưu ở `listing_images`/`scan_images` là băm của **tệp gốc người dùng gửi**.
   4. Object key do server sinh, không dùng tên file người dùng: ảnh tin `{listingPublicId}/{uuid}.webp`,
      ảnh kiểm tra `{scanPublicId}/{imageNo}.webp`, giấy tờ `{ownerUserId}/{uuid}.bin` (bản mã).
   5. Ảnh tin công khai phục vụ với `X-Content-Type-Options: nosniff` và `Content-Type` do server đặt.
