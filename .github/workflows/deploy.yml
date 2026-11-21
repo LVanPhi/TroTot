@@ -82,6 +82,8 @@ jobs:
       contents: read
       packages: write
     strategy:
+      # One image failing to publish (e.g. a transient GHCR error) must not cancel the others.
+      fail-fast: false
       matrix:
         image: [api, migrator, maintenance, worker, web, postgres]
     steps:
