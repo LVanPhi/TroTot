@@ -1,7 +1,8 @@
 """One scan.requested job. Order at the end of every job: commit DB -> XADD scan-completed -> XACK.
 
-The real pipeline (docs/05-ai-worker.md, steps 1-12) arrives in T2.x. Until then the job only finishes a scan
-when WORKER_FAKE_PIPELINE=1, writing a placeholder assessment with score 0.
+Steps 1-6 (text analysis, jobs/text_steps.py) run for every job; scoring (steps 7-12) arrives in T2.4.
+Until then the job only finishes a scan when WORKER_FAKE_PIPELINE=1, writing a placeholder assessment
+with score 0.
 """
 
 import logging
@@ -9,6 +10,8 @@ from typing import Any
 
 from psycopg_pool import ConnectionPool
 
+from troviec_worker.jobs import text_steps
+from troviec_worker.pipeline.budget import Budget
 from troviec_worker.registry import Registry
 from troviec_worker.streams import SCAN_COMPLETED, Message, StreamConsumer, publish
 
@@ -50,7 +53,10 @@ def handle(
     pool: ConnectionPool,
     registry: Registry,
     fake_pipeline: bool,
+    deps: text_steps.PipelineDeps | None = None,
 ) -> None:
+    """`deps=None` skips the text steps (tests of the queue mechanics only)."""
+    budget = Budget()  # 8 s from the moment the worker takes the job
     scan_id = int(message.payload["scanId"])
     scan = load_scan(pool, scan_id)
     if scan is None:
@@ -63,6 +69,10 @@ def handle(
         # Redelivery after a crash between commit and XADD: re-emit the event so the API is not left waiting.
         _finish(consumer, message, scan, replay=True)
         return
+
+    text_steps.mark_processing(pool, scan_id)
+    if deps is not None:
+        text_steps.analyse(pool, scan, deps, budget)
 
     if not fake_pipeline:
         raise PipelineNotReadyError("scoring pipeline not implemented yet (T2.x); set WORKER_FAKE_PIPELINE=1")

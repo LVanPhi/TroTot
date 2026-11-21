@@ -107,7 +107,8 @@ def test_process_without_fake_pipeline_leaves_entry_pending(
 
     process(message, consumer, worker_pool, Registry(worker_pool), _settings(fake=False))
 
-    assert sql("SELECT status::text FROM app.scans WHERE id = %s", (scan_id,)) == [("queued",)]
+    # Step 1 marks the scan processing as soon as a worker takes it (docs/05-ai-worker.md).
+    assert sql("SELECT status::text FROM app.scans WHERE id = %s", (scan_id,)) == [("processing",)]
     assert _pending(redis_client) == 1
     assert _completed_events(redis_client) == []
 
