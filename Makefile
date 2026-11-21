@@ -2,16 +2,19 @@
 # Target chưa có cài đặt in ra task sẽ làm nó (docs/10-implementation-plan.md).
 
 .DEFAULT_GOAL := help
+COMPOSE := docker compose -f infra/docker-compose.yml --env-file .env
 .PHONY: help dev-up dev-down migrate api worker worker-embed web test gen-api
 
 help: ## Liệt kê các target
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
 
 dev-up: ## Bật hạ tầng dev: postgres, redis, garage, mailpit
-	@echo "Chưa có — làm ở T0.2"
+	@test -f .env || { echo "Thiếu .env — chép từ .env.example rồi đặt mật khẩu"; exit 1; }
+	$(COMPOSE) up -d --build --wait
+	bash infra/garage/init.sh
 
 dev-down: ## Tắt hạ tầng dev (giữ dữ liệu)
-	@echo "Chưa có — làm ở T0.2"
+	$(COMPOSE) down
 
 migrate: ## Chạy db/migrations bằng TroViec.Migrator
 	@echo "Chưa có — làm ở T0.3"

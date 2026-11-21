@@ -90,7 +90,7 @@ services:
     ports: ["3900:3900", "3902:3902"]
 
   mailpit:                                 # SMTP giả, xem email ở http://localhost:8025
-    image: axllent/mailpit:latest
+    image: axllent/mailpit:v1.33.1
     ports: ["1025:1025", "8025:8025"]
 
 volumes: { pgdata: {}, redisdata: {}, garage-meta: {}, garage-data: {} }
