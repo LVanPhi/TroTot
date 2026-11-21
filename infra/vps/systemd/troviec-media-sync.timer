@@ -1,0 +1,10 @@
+# DISABLED until T4.4. Enable with: sudo systemctl enable --now troviec-media-sync.timer
+[Unit]
+Description=Schedule troviec-media-sync
+
+[Timer]
+OnCalendar=*-*-* 20:30:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -5,7 +5,11 @@ try
 {
     DotEnv.LoadFromRepoRoot();
     var command = args.Length > 0 ? args[0] : "migrate";
-    var connectionString = Settings.Required("ConnectionStrings__Migrator");
+    // SCRAM only, never Kerberos: skip the GSS probe that logs "libgssapi_krb5.so.2 not found" in the runtime image.
+    var connectionString = new Npgsql.NpgsqlConnectionStringBuilder(Settings.Required("ConnectionStrings__Migrator"))
+    {
+        GssEncryptionMode = Npgsql.GssEncryptionMode.Disable,
+    }.ConnectionString;
 
     switch (command)
     {

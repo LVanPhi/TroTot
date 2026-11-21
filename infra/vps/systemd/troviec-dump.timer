@@ -1,0 +1,10 @@
+# DISABLED until T4.4. Enable with: sudo systemctl enable --now troviec-dump.timer
+[Unit]
+Description=Schedule troviec-dump
+
+[Timer]
+OnCalendar=Sun *-*-* 20:00:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

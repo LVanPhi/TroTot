@@ -1,0 +1,151 @@
+# Build and publish images, then deploy to the VPS (docs/08-deployment.md, CI/CD).
+# Runs after the "ci" workflow succeeds on a push to main, or by hand (workflow_dispatch).
+# The deploy job only runs when the repository variable DEPLOY_ENABLED is "true" (set it once the VPS exists);
+# until then pushes to main still build and publish images.
+name: deploy
+
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: build ${{ matrix.image.name }} (${{ matrix.arch }})
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        arch: [amd64, arm64]
+        image:
+          - { name: api, context: ., file: apps/api/Dockerfile, target: api, project: TroViec.Api }
+          - { name: migrator, context: ., file: apps/api/Dockerfile, target: migrator, project: TroViec.Migrator }
+          - { name: maintenance, context: ., file: apps/api/Dockerfile, target: maintenance, project: TroViec.Maintenance }
+          - { name: worker, context: apps/worker, file: apps/worker/Dockerfile, target: "", project: "" }
+          - { name: web, context: apps/web, file: apps/web/Dockerfile, target: "", project: "" }
+          - { name: postgres, context: ., file: infra/postgres/Dockerfile, target: "", project: "" }
+        include:
+          - { arch: amd64, runner: ubuntu-24.04 }
+          - { arch: arm64, runner: ubuntu-24.04-arm }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - name: Image name
+        id: name
+        env:
+          OWNER: ${{ github.repository_owner }}
+          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          echo "image=ghcr.io/${OWNER,,}/troviec-${{ matrix.image.name }}" >> "$GITHUB_OUTPUT"
+          echo "tag=${SHA}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # Native runner per architecture; the per-arch tags are joined into one multi-arch tag in "publish".
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: ${{ matrix.image.context }}
+          file: ${{ matrix.image.file }}
+          target: ${{ matrix.image.target }}
+          build-args: PROJECT=${{ matrix.image.project }}
+          platforms: linux/${{ matrix.arch }}
+          push: true
+          provenance: false
+          tags: ${{ steps.name.outputs.image }}:${{ steps.name.outputs.tag }}-${{ matrix.arch }}
+          cache-from: type=gha,scope=${{ matrix.image.name }}-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image.name }}-${{ matrix.arch }}
+
+  publish:
+    name: publish ${{ matrix.image }}
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        image: [api, migrator, maintenance, worker, web, postgres]
+    steps:
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Multi-arch tag <sha>
+        env:
+          OWNER: ${{ github.repository_owner }}
+          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          image="ghcr.io/${OWNER,,}/troviec-${{ matrix.image }}"
+          docker buildx imagetools create -t "$image:$SHA" "$image:$SHA-amd64" "$image:$SHA-arm64"
+          docker buildx imagetools inspect "$image:$SHA"
+      # Keep the 5 most recent releases (each release = 1 index + 2 per-arch manifests = 3 versions).
+      - uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
+        with:
+          package-name: troviec-${{ matrix.image }}
+          package-type: container
+          min-versions-to-keep: 15
+
+  deploy:
+    needs: publish
+    if: vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - name: SSH key
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_deploy && chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+      - name: Copy compose, Caddyfile and Garage files
+        env:
+          TARGET: ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}
+        run: |
+          tar -C infra -czf - docker-compose.prod.yml caddy/Caddyfile garage/garage.toml garage/init.sh \
+            | ssh -i ~/.ssh/id_deploy "$TARGET" 'tar -C /opt/troviec -xzf -'
+      - name: Pull, migrate, start
+        env:
+          TARGET: ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}
+          TAG: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          ssh -i ~/.ssh/id_deploy "$TARGET" "cd /opt/troviec && export TAG=$TAG && \
+            docker compose -f docker-compose.prod.yml pull && \
+            docker compose -f docker-compose.prod.yml run --rm migrator && \
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans && \
+            echo $TAG > DEPLOYED_TAG"
+      - name: Health check
+        env:
+          DOMAIN: ${{ vars.DOMAIN }}
+        run: |
+          for _ in $(seq 1 30); do
+            curl -fsS "https://$DOMAIN/health/live" && exit 0
+            sleep 5
+          done
+          echo "health check failed; roll back with the previous tag (infra/vps/README.md)"; exit 1

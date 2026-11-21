@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Idempotent one-node Garage setup for dev: layout, 3 buckets, 2 keys, website mode.
 # Run from repo root after the stack is up. Prints keys; copy them into .env yourself.
+# Production: GARAGE_COMPOSE_FILE=docker-compose.prod.yml GARAGE_ENV_FILE=.env bash garage/init.sh (from /opt/troviec).
 set -euo pipefail
 export MSYS_NO_PATHCONV=1   # Git Bash on Windows: keep "/garage" as a container path
 
-COMPOSE=(docker compose -f infra/docker-compose.yml --env-file .env)
+COMPOSE=(docker compose -f "${GARAGE_COMPOSE_FILE:-infra/docker-compose.yml}" --env-file "${GARAGE_ENV_FILE:-.env}")
 garage() { "${COMPOSE[@]}" exec -T -e RUST_LOG=warn garage /garage "$@"; }
 
 ALL_BUCKETS=(listing-images scan-images owner-documents)
