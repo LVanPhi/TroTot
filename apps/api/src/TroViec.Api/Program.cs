@@ -41,7 +41,15 @@ builder.Services
     .AddSms()
     .AddValidators()
     .AddCorsForSite(builder.Configuration)
-    .AddOpenApi();
+    .AddOpenApi(options =>
+    {
+        // Request/response records are nested in their feature class (Login.Request, Register.Request...);
+        // prefix the declaring type so each gets its own schema (LoginRequest, RegisterRequest...).
+        options.CreateSchemaReferenceId = info =>
+            info.Type.IsNested && info.Type.DeclaringType is { } outer
+                ? outer.Name + info.Type.Name
+                : Microsoft.AspNetCore.OpenApi.OpenApiOptions.CreateDefaultSchemaReferenceId(info);
+    });
 
 var app = builder.Build();
 

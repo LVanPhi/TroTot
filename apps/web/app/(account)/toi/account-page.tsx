@@ -1,0 +1,45 @@
+"use client";
+
+import type { ReactNode } from "react";
+
+import { useMe } from "@/lib/auth/use-auth";
+
+import { DeleteAccountSection, ProfileSection, SignOutButton } from "./account-sections";
+import { PhoneSection } from "./phone-section";
+import { PostingChecklist } from "./posting-checklist";
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section aria-labelledby={title} className="flex flex-col gap-3 rounded-xl border border-border p-4">
+      <h2 id={title} className="text-lg font-semibold">
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+export function AccountPage() {
+  const { data: me } = useMe();
+  if (!me) return null;
+  return (
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-8">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold tracking-tight">Tài khoản của tôi</h1>
+        <SignOutButton />
+      </div>
+      <Section title="Điều kiện đăng tin">
+        <PostingChecklist posting={me.posting} />
+      </Section>
+      <Section title="Thông tin">
+        <ProfileSection me={me} />
+      </Section>
+      <Section title="Số điện thoại">
+        <PhoneSection me={me} />
+      </Section>
+      <Section title="Xóa tài khoản">
+        <DeleteAccountSection />
+      </Section>
+    </main>
+  );
+}

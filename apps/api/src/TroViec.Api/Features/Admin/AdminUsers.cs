@@ -36,7 +36,7 @@ public static class AdminUsers
     public static void MapAdminUsers(this IEndpointRouteBuilder app)
     {
         var users = app.MapGroup("/api/v1/admin/users").WithTags("Admin").RequireAuthorization(Permissions.UserManage);
-        users.MapGet("/", SearchAsync);
+        users.MapGet("/", SearchAsync).Produces<Paged<UserItem>>();
         users.MapPost("/{id:long}/roles", AddRoleAsync).Validate<RoleRequest>();
         users.MapDelete("/{id:long}/roles/{roleCode}", RemoveRoleAsync);
         users.MapPost("/{id:long}/lock", LockAsync);

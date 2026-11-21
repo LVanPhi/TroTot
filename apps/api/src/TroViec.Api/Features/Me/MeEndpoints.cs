@@ -29,8 +29,8 @@ public static class MeEndpoints
     public static void MapMe(this IEndpointRouteBuilder app)
     {
         var me = app.MapGroup("/api/v1/me").WithTags("Me").RequireAuthorization();
-        me.MapGet("/", GetAsync);
-        me.MapPatch("/", UpdateAsync).Validate<UpdateRequest>();
+        me.MapGet("/", GetAsync).Produces<MeResponse>();
+        me.MapPatch("/", UpdateAsync).Validate<UpdateRequest>().Produces<MeResponse>();
         me.MapDelete("/", DeleteAsync).Validate<DeleteRequest>();
     }
 
