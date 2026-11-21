@@ -1,0 +1,10 @@
+# DISABLED until T4.4. Enable with: sudo systemctl enable --now troviec-basebackup.timer
+[Unit]
+Description=Schedule troviec-basebackup
+
+[Timer]
+OnCalendar=*-*-* 19:30:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

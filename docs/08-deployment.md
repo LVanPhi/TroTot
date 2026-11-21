@@ -314,10 +314,15 @@ ASP.NET Core đọc khóa lồng bằng `__` (ví dụ `Jwt__SigningKey`).
 `db/seed/demo` → chạy 4 kịch bản Playwright (T4.2) → OWASP ZAP baseline trên chính stack đó (T4.1). Dự án không
 có môi trường staging riêng; đây là nơi duy nhất chạy E2E và ZAP tự động.
 
-`.github/workflows/deploy.yml` (push vào `main`, sau khi CI xanh):
+`.github/workflows/deploy.yml` (sau khi workflow `ci` xanh trên lần push vào `main`, hoặc chạy tay). Bước deploy chỉ
+chạy khi biến repo `DEPLOY_ENABLED=true`; cần Secrets `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`, `VPS_KNOWN_HOSTS`, biến
+`DOMAIN` và environment `production`. Chuẩn bị VPS từng bước: [`infra/vps/README.md`](../infra/vps/README.md).
 
-1. Build và đẩy image đa kiến trúc lên GHCR với tag `${{ github.sha }}`: `api`, `migrator`, `maintenance`,
-   `worker` (cũng dùng cho `worker-embed`), `web`. Xóa bớt bản cũ, giữ 5 tag gần nhất (đủ để quay lui).
+1. Build và đẩy **6** image đa kiến trúc lên GHCR (`ghcr.io/<owner>/troviec-<tên>`) với tag là commit SHA:
+   `api`, `migrator`, `maintenance`, `worker` (cũng dùng cho `worker-embed`), `web`, `postgres` (image
+   `infra/postgres` có PostGIS + pgvector). Mỗi kiến trúc build trên runner thật (`<sha>-amd64`, `<sha>-arm64`)
+   rồi ghép thành tag đa kiến trúc `<sha>`. Xóa bớt bản cũ, giữ 5 bản gần nhất (đủ để quay lui).
+   Package GHCR mới tạo là private: đặt thành public một lần (`infra/vps/README.md`, bước 6).
 2. SSH vào VPS (khóa deploy riêng, user không có sudo):
    ```bash
    cd /opt/troviec

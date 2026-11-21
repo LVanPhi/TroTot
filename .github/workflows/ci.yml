@@ -46,7 +46,7 @@ jobs:
             -e APP_RESEARCH_PASSWORD=ci-research \
             troviec-postgres-test:latest
           # The init script restarts the server once; wait for the final "ready" message.
-          for i in $(seq 1 60); do
+          for _ in $(seq 1 60); do
             [ "$(docker logs pg 2>&1 | grep -c 'ready to accept connections')" -ge 2 ] && exit 0
             sleep 2
           done
@@ -159,7 +159,7 @@ jobs:
           dotnet build apps/api/src/TroViec.Api -c Release
           nohup dotnet run --project apps/api/src/TroViec.Api -c Release --no-build --no-launch-profile \
             --urls http://localhost:8080 > api.log 2>&1 &
-          for i in $(seq 1 60); do curl -fsS http://localhost:8080/openapi/v1.json -o /dev/null && exit 0; sleep 2; done
+          for _ in $(seq 1 60); do curl -fsS http://localhost:8080/openapi/v1.json -o /dev/null && exit 0; sleep 2; done
           cat api.log; exit 1
       - name: Regenerate schema.d.ts and compare
         working-directory: apps/web

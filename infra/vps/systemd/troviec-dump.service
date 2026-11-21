@@ -1,0 +1,12 @@
+# DISABLED until T4.4: weekly pg_dump -Fc, encrypted, pushed off-site, keep 4 (docs/08-deployment.md).
+# The command is a placeholder that fails on purpose so an early enable is noticed.
+[Unit]
+Description=Tro & Viec Sach: weekly encrypted pg_dump to off-site storage
+Wants=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+User=deploy
+WorkingDirectory=/opt/troviec
+ExecStart=/bin/sh -c 'echo "troviec-dump is implemented in T4.4" >&2; exit 1'

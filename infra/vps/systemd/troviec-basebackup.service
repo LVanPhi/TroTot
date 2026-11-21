@@ -1,0 +1,12 @@
+# DISABLED until T4.4 (WAL-G in the postgres image, archive_mode on, off-site storage configured).
+[Unit]
+Description=Tro & Viec Sach: PostgreSQL base backup with WAL-G, keep 7
+Wants=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+User=deploy
+WorkingDirectory=/opt/troviec
+# $$PGDATA reaches the container as $PGDATA, so it expands inside postgres, not on the host.
+ExecStart=/usr/bin/docker compose -f docker-compose.prod.yml exec -T postgres sh -c 'wal-g backup-push "$$PGDATA" && wal-g delete retain FULL 7 --confirm'

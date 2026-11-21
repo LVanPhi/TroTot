@@ -15,6 +15,9 @@ public static class DatabaseSetup
             var connectionString = configuration.GetConnectionString("Main")
                 ?? throw new InvalidOperationException("ConnectionStrings__Main is not set");
             var builder = new NpgsqlDataSourceBuilder(connectionString);
+            // PostgreSQL here uses SCRAM over the Docker network, never Kerberos; skipping the GSS probe avoids a
+            // "libgssapi_krb5.so.2 not found" error on every new connection in the slim .NET runtime image.
+            builder.ConnectionStringBuilder.GssEncryptionMode = GssEncryptionMode.Disable;
             builder.UseVector();
             return builder.Build();
         });

@@ -1,0 +1,169 @@
+# Production stack (docs/08-deployment.md, Production). Lives on the VPS as /opt/troviec/docker-compose.prod.yml
+# next to caddy/, garage/ and .env (mode 600). Deployed by .github/workflows/deploy.yml:
+#   export TAG=<commit sha>
+#   docker compose -f docker-compose.prod.yml pull
+#   docker compose -f docker-compose.prod.yml run --rm migrator
+#   docker compose -f docker-compose.prod.yml up -d --remove-orphans
+# Only Caddy publishes ports. Memory limits fit a 12 GB machine (Oracle A1); revisit when PhoBERT is enabled.
+name: troviec
+
+x-defaults: &defaults
+  restart: unless-stopped
+  networks: [internal]
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "5" }
+
+
+services:
+  caddy:
+    <<: *defaults
+    image: caddy:2.11
+    mem_limit: 256m
+    environment:
+      DOMAIN: ${DOMAIN:?set in .env}
+      ACME_EMAIL: ${ACME_EMAIL:?set in .env}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on: [web, api]
+
+  web:
+    <<: *defaults
+    image: ${IMAGE_PREFIX:-ghcr.io/lvanphi/troviec}-web:${TAG:?set TAG}
+    mem_limit: 384m
+    environment:
+      API_INTERNAL_URL: http://api:8080
+      NEXT_PUBLIC_SITE_URL: https://${DOMAIN}
+
+  api:
+    <<: *defaults
+    image: ${IMAGE_PREFIX:-ghcr.io/lvanphi/troviec}-api:${TAG:?set TAG}
+    mem_limit: 512m
+    env_file: .env
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      # Caddy and web reach the API from this subnet; only they may set X-Forwarded-For.
+      ForwardedHeaders__KnownNetworks: 172.30.0.0/24
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  worker:
+    <<: *defaults
+    image: ${IMAGE_PREFIX:-ghcr.io/lvanphi/troviec}-worker:${TAG:?set TAG}
+    command: ["consume"]
+    mem_limit: 1536m
+    env_file: .env
+    environment:
+      MODEL_DIR: /models
+      HF_HOME: /models/hf
+    volumes: [models:/models]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  worker-embed:
+    <<: *defaults
+    image: ${IMAGE_PREFIX:-ghcr.io/lvanphi/troviec}-worker:${TAG:?set TAG}
+    command: ["serve-embed"]
+    mem_limit: 3g
+    env_file: .env
+    environment:
+      MODEL_DIR: /models
+      HF_HOME: /models/hf
+    volumes: [models:/models]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  postgres:
+    <<: *defaults
+    image: ${IMAGE_PREFIX:-ghcr.io/lvanphi/troviec}-postgres:${TAG:?set TAG}
+    mem_limit: 2g
+    shm_size: 256m
+    # archive_mode stays OFF until T4.4 ships WAL-G: a failing archive_command keeps every WAL file
+    # in pg_wal until the disk is full.
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+      POSTGRES_DB: troviec
+      APP_MIGRATOR_PASSWORD: ${APP_MIGRATOR_PASSWORD:?set in .env}
+      APP_API_PASSWORD: ${APP_API_PASSWORD:?set in .env}
+      APP_WORKER_PASSWORD: ${APP_WORKER_PASSWORD:?set in .env}
+      APP_MAINTENANCE_PASSWORD: ${APP_MAINTENANCE_PASSWORD:?set in .env}
+      APP_REPORTING_PASSWORD: ${APP_REPORTING_PASSWORD:?set in .env}
+      APP_RESEARCH_PASSWORD: ${APP_RESEARCH_PASSWORD:?set in .env}
+    volumes: [pgdata:/var/lib/postgresql]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d troviec"]
+      interval: 5s
+      retries: 30
+
+  redis:
+    <<: *defaults
+    image: redis:8-alpine
+    mem_limit: 512m
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 20
+
+  garage:
+    <<: *defaults
+    image: dxflrs/garage:v2.4.1
+    mem_limit: 512m
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET:?set in .env}
+    volumes:
+      - ./garage/garage.toml:/etc/garage.toml:ro
+      - garage-meta:/var/lib/garage/meta
+      - garage-data:/var/lib/garage/data
+
+  # One-shot jobs (profile "jobs"): `docker compose run --rm migrator` / `run --rm maintenance`.
+  migrator:
+    <<: *defaults
+    restart: "no"
+    profiles: [jobs]
+    image: ${IMAGE_PREFIX:-ghcr.io/lvanphi/troviec}-migrator:${TAG:?set TAG}
+    mem_limit: 256m
+    environment:
+      ConnectionStrings__Migrator: ${ConnectionStrings__Migrator:?set in .env}
+      Bootstrap__AdminEmail: ${Bootstrap__AdminEmail:-}
+      Bootstrap__AdminPassword: ${Bootstrap__AdminPassword:-}
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  maintenance:
+    <<: *defaults
+    restart: "no"
+    profiles: [jobs]
+    image: ${IMAGE_PREFIX:-ghcr.io/lvanphi/troviec}-maintenance:${TAG:?set TAG}
+    mem_limit: 256m
+    # Own role (app_maintenance); never ConnectionStrings__Main, which is app_api and lacks DELETE on scans.
+    environment:
+      ConnectionStrings__Maintenance: ${ConnectionStrings__Maintenance:?set in .env}
+      ConnectionStrings__Redis: ${ConnectionStrings__Redis:-redis:6379}
+      S3__Endpoint: ${S3__Endpoint:-http://garage:3900}
+      S3__Region: ${S3__Region:-garage}
+      S3__AccessKey: ${S3__AccessKey:-}
+      S3__SecretKey: ${S3__SecretKey:-}
+    depends_on:
+      postgres: { condition: service_healthy }
+
+networks:
+  internal:
+    ipam:
+      config: [{ subnet: 172.30.0.0/24 }]
+
+volumes:
+  pgdata: {}
+  redisdata: {}
+  garage-meta: {}
+  garage-data: {}
+  caddy-data: {}
+  caddy-config: {}
+  models: {}

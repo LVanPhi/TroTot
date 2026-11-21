@@ -1,0 +1,12 @@
+# DISABLED until T4.4: rclone sync of listing-images and owner-documents (already encrypted) off-site;
+# scan-images is never backed up. The command is a placeholder that fails on purpose.
+[Unit]
+Description=Tro & Viec Sach: sync listing images and owner documents to off-site storage
+Wants=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+User=deploy
+WorkingDirectory=/opt/troviec
+ExecStart=/bin/sh -c 'echo "troviec-media-sync is implemented in T4.4" >&2; exit 1'
