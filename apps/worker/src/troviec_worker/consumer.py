@@ -11,7 +11,7 @@ import redis
 from psycopg_pool import ConnectionPool
 
 from troviec_worker.config import Settings
-from troviec_worker.jobs import scan_job, text_steps
+from troviec_worker.jobs import scan_job, scoring, text_steps
 from troviec_worker.pipeline import identifiers, pii
 from troviec_worker.registry import Registry
 from troviec_worker.storage import make_image_loader
@@ -26,31 +26,31 @@ def process(
     pool: ConnectionPool,
     registry: Registry,
     settings: Settings,
-    deps: text_steps.PipelineDeps | None = None,
+    deps: scan_job.JobDeps,
 ) -> None:
     """Run one job. Any failure leaves the entry pending so XAUTOCLAIM redelivers it later."""
     if message.deliveries > settings.max_deliveries:
         scan_job.dead_letter(message, consumer, pool, error="max deliveries exceeded")
         return
     try:
-        scan_job.handle(message, consumer, pool, registry, settings.worker_fake_pipeline, deps)
-    except scan_job.PipelineNotReadyError:
-        log.warning("pipeline not ready, leaving pending", extra={"message_id": message.id})
+        scan_job.handle(message, consumer, pool, registry, deps)
     except Exception:
         # Type only: messages may carry user content.
         log.exception("job failed, will be redelivered", extra={"message_id": message.id})
 
 
-def build_deps(settings: Settings) -> text_steps.PipelineDeps:
-    """S3 loader, HMAC key (base64-decoded IDENTIFIER_HMAC_KEY) and optional NER for the text steps."""
+def build_deps(settings: Settings, pool: ConnectionPool) -> scan_job.JobDeps:
+    """S3 loader, HMAC key (base64-decoded IDENTIFIER_HMAC_KEY), optional NER, criteria cache, LLM
+    settings."""
     if not settings.identifier_hmac_key:
         raise RuntimeError("IDENTIFIER_HMAC_KEY is required (base64 of 32 random bytes, same as the API)")
-    return text_steps.PipelineDeps(
+    text = text_steps.PipelineDeps(
         load_image=make_image_loader(settings),
         hmac_key=identifiers.decode_key(settings.identifier_hmac_key),
         scan_bucket=settings.s3_bucket_scan_images,
         ner=_optional_ner(),
     )
+    return scan_job.JobDeps(text=text, scoring=scoring.ScoringDeps(settings, scoring.CriteriaCache(pool)))
 
 
 def _optional_ner() -> pii.NerFn | None:
@@ -72,7 +72,7 @@ def run(
     consumer = StreamConsumer(client, SCAN_REQUESTED)
     consumer.ensure_group()
     registry = Registry(pool)
-    deps = build_deps(settings)
+    deps = build_deps(settings, pool)
     log.info("consuming", extra={"stream": SCAN_REQUESTED, "consumer": consumer.consumer})
 
     next_reclaim = 0.0

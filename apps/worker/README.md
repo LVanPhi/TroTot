@@ -11,5 +11,5 @@ uv run pytest                # cần Docker (testcontainers: Redis, PostgreSQL)
 uv run ruff format --check . && uv run ruff check .
 ```
 
-Pipeline chấm điểm chưa có (T2.x). Đặt `WORKER_FAKE_PIPELINE=1` để worker đánh dấu lượt `completed`
-với điểm giả 0 (chỉ dev/E2E).
+Không cần LLM để chạy: khi không có phiên bản `llm` đang chạy (mặc định), chữ được chấm bằng luật dự phòng
+(`pipeline/rules.py`). Dev/E2E muốn mức "Cao" ổn định thì đặt `LLM_FAKE=1` và đăng ký dòng `llm fake/deterministic`.

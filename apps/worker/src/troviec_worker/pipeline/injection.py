@@ -46,14 +46,14 @@ def detect(masked_text: str) -> list[InjectionFinding]:
     seen: set[str] = set()
     for pattern in PATTERNS:
         for m in pattern.finditer(folded):
-            evidence = _sentence_around(masked_text, m.start(), m.end())
+            evidence = sentence_around(masked_text, m.start(), m.end())
             if evidence not in seen:
                 seen.add(evidence)
                 findings.append(InjectionFinding(evidence))
     return findings
 
 
-def _sentence_around(text: str, start: int, end: int) -> str:
+def sentence_around(text: str, start: int, end: int) -> str:
     left = max((m.end() for m in _SENTENCE_END.finditer(text, 0, start)), default=0)
     right_match = _SENTENCE_END.search(text, end)
     right = right_match.end() if right_match else len(text)

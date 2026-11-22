@@ -1,0 +1,9 @@
+{
+  "version": "agg-v0",
+  "type": "noisy_or",
+  "maxContribution": { "text": 0.85, "image": 0.6, "price": 0.5, "community": 0.8 },
+  "flagBonusPerExtraFlag": 0.05,
+  "flagBonusCap": 0.15,
+  "injectionFloor": 0.7,
+  "thresholds": { "caution": 40, "high": 70 }
+}

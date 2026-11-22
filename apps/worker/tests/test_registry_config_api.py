@@ -39,11 +39,11 @@ def test_registry_reloads_only_after_refresh_interval(worker_pool: ConnectionPoo
 def test_settings_read_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DATABASE_URL", "postgresql://x")
     monkeypatch.setenv("REDIS_URL", "redis://y")
-    monkeypatch.setenv("WORKER_FAKE_PIPELINE", "1")
+    monkeypatch.setenv("LLM_FAKE", "1")
 
     settings = Settings(_env_file=None)  # type: ignore[call-arg]
 
-    assert (settings.database_url, settings.redis_url, settings.worker_fake_pipeline) == (
+    assert (settings.database_url, settings.redis_url, settings.llm_fake) == (
         "postgresql://x",
         "redis://y",
         True,
