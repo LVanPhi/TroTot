@@ -1,0 +1,41 @@
+# Run production on a personal machine without a VPS, exposed through a free tunnel (docs/08-deployment.md,
+# Chạy không cần VPS). Use together with the production file:
+#   docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml --env-file .env up -d
+# Cloudflare quick tunnel (no account): the public URL is printed in `docker compose logs cloudflared`.
+# Named tunnel (fixed hostname): set CLOUDFLARE_TUNNEL_TOKEN in .env and the `token` profile is used instead.
+services:
+  caddy:
+    ports: !override
+      - "127.0.0.1:8088:80"   # local check only; the public way in is the tunnel
+    volumes: !override
+      - ./caddy/Caddyfile.tunnel:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    environment: !override
+      DOMAIN: ${DOMAIN:-localhost}
+      ACME_EMAIL: ${ACME_EMAIL:-unused@example.com}
+
+  # No SMTP account yet: catch every email locally (http://127.0.0.1:8025). With Brevo, set Smtp__* in .env instead.
+  mailpit:
+    image: axllent/mailpit:v1.33.1
+    restart: unless-stopped
+    ports: ["127.0.0.1:8025:8025"]
+    networks: [internal]
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.11.1
+    restart: unless-stopped
+    command: ["tunnel", "--no-autoupdate", "--url", "http://caddy:80"]
+    depends_on: [caddy]
+    networks: [internal]
+    profiles: [quick]
+
+  cloudflared-named:
+    image: cloudflare/cloudflared:2026.11.1
+    restart: unless-stopped
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on: [caddy]
+    networks: [internal]
+    profiles: [token]
