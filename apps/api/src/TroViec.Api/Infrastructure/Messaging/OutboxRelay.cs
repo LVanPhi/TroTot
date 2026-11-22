@@ -10,6 +10,7 @@ public static class Streams
 {
     public const string ScanRequested = "troviec:scan-requested";
     public const string ListingEmbed = "troviec:listing-embed";
+    public const string ScanCompleted = "troviec:scan-completed";
     public const int MaxLength = 10_000;
 
     public static NameValueEntry[] Entry(string type, object payload) =>
@@ -132,6 +133,11 @@ public static class ScanServicesSetup
         services.AddSingleton<OutboxSignal>();
         services.AddSingleton<OutboxRelay>();
         services.AddHostedService(sp => sp.GetRequiredService<OutboxRelay>());
+        services.AddSingleton<Features.Listings.ListingTransitionService>();
+        services.AddSingleton<ScanCompletedHandler>();
+        services.AddSingleton<ScanCompletedConsumer>();
+        services.AddHostedService(sp => sp.GetRequiredService<ScanCompletedConsumer>());
+        services.AddSignalR();
         return services;
     }
 }
