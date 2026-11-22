@@ -31,9 +31,17 @@ export function AccountPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Tài khoản của tôi</h1>
         <SignOutButton />
       </div>
-      <Link href="/toi/kiem-tra" className={linkClass}>
-        Lịch sử kiểm tra tin
-      </Link>
+      <nav aria-label="Trang của tôi" className="flex flex-wrap gap-4">
+        <Link href="/toi/tin-cua-toi" className={linkClass}>
+          Tin của tôi
+        </Link>
+        <Link href="/toi/ho-so-chu" className={linkClass}>
+          Hồ sơ chủ
+        </Link>
+        <Link href="/toi/kiem-tra" className={linkClass}>
+          Lịch sử kiểm tra tin
+        </Link>
+      </nav>
       <Section title="Điều kiện đăng tin">
         <PostingChecklist posting={me.posting} />
       </Section>
