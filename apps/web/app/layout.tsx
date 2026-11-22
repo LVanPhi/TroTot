@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 
 import { SiteHeader } from "@/components/domain/site-header";
 import { QueryProvider } from "@/components/providers/query-provider";
+import { ServiceWorkerRegistration } from "@/components/providers/service-worker";
 import { AuthProvider } from "@/lib/auth/use-auth";
 
 import "./globals.css";
@@ -42,6 +43,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <SiteHeader />
             {children}
             <Toaster richColors position="top-center" />
+            <ServiceWorkerRegistration />
           </AuthProvider>
         </QueryProvider>
       </body>

@@ -73,3 +73,27 @@ const payUnitLabels: Record<PayUnit, string> = {
 export function formatPay(amount: number, unit: PayUnit): string {
   return `${formatVnd(amount)}/${payUnitLabels[unit]}`;
 }
+
+/**
+ * Money typed by a person → integer VND, or null when it cannot be read (docs/06-frontend.md, Form).
+ * "2.500.000" → 2500000, "2tr5" → 2500000, "2,5 triệu" → 2500000, "800k" / "800 nghìn" → 800000.
+ */
+export function parseVndInput(input: string): number | null {
+  const s = input.trim().toLowerCase().replace(/\s+/g, "").replace(/₫|đ|vnd$/g, "");
+  if (s === "") return null;
+  const units: [RegExp, number][] = [
+    [/^(\d+)(?:tr|triệu|trieu)(\d*)$/, 1_000_000],
+    [/^(\d+)(?:k|nghìn|nghin|ngàn|ngan)(\d*)$/, 1_000],
+  ];
+  for (const [pattern, unit] of units) {
+    const m = s.match(pattern);
+    if (m) return Math.round(Number(m[1]) * unit + (m[2] ? Number(`0.${m[2]}`) * unit : 0));
+  }
+  const decimal = s.match(/^(\d+)[,.](\d+)(tr|triệu|trieu|k|nghìn|nghin)$/);
+  if (decimal) {
+    const unit = decimal[3].startsWith("t") ? 1_000_000 : 1_000;
+    return Math.round(Number(`${decimal[1]}.${decimal[2]}`) * unit);
+  }
+  if (/^\d{1,3}([.,]\d{3})+$/.test(s) || /^\d+$/.test(s)) return Number(s.replace(/[.,]/g, ""));
+  return null;
+}
