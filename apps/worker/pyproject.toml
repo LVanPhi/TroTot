@@ -24,6 +24,7 @@ dependencies = [
 # Heavy ML stack, installed in the Docker image; local dev adds it with `uv sync --extra ml` when needed (T2.x).
 ml = [
     "open-clip-torch>=3.2",
+    "sentence-transformers>=5.1",
     "torch>=2.9",
     "torchvision>=0.24",  # pulled by open_clip; must come from the same CPU index as torch
     "underthesea>=6.8",

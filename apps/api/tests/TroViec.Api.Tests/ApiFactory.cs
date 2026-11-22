@@ -31,6 +31,9 @@ public sealed class ApiFactory(InfraFixture infra, string environment = "Develop
     /// <summary>When set, replaces TimeProvider.System (e.g. to expire a 5-minute document link).</summary>
     public MutableClock? Clock { get; init; }
 
+    /// <summary>Extra service replacements for one test class (e.g. a fake embedding client).</summary>
+    public Action<IServiceCollection>? TestServices { get; init; }
+
     public static string TestKey(int seed) => Convert.ToBase64String(Enumerable.Range(seed, 32).Select(i => (byte)i).ToArray());
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -69,6 +72,8 @@ public sealed class ApiFactory(InfraFixture infra, string environment = "Develop
             config.AddInMemoryCollection(settings);
         });
         builder.ConfigureServices(services => services.AddSingleton<IStartupFilter, TestHooks>());
+        if (TestServices is not null)
+            builder.ConfigureTestServices(TestServices);
         if (Clock is not null)
             builder.ConfigureTestServices(services => services.AddSingleton<TimeProvider>(Clock));
         if (CaptureSms)

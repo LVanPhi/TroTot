@@ -1601,7 +1601,38 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: {
+            parameters: {
+                query?: {
+                    type?: string;
+                    minRent?: number | string;
+                    maxRent?: number | string;
+                    lat?: number | string;
+                    lng?: number | string;
+                    radiusM?: number | string;
+                    amenities?: string;
+                    selfContained?: boolean;
+                    sort?: string;
+                    page?: number | string;
+                    pageSize?: number | string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfItem"];
+                    };
+                };
+            };
+        };
         put?: never;
         post: {
             parameters: {
@@ -1907,6 +1938,53 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/listings/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    q?: string;
+                    type?: string;
+                    minRent?: number | string;
+                    maxRent?: number | string;
+                    lat?: number | string;
+                    lng?: number | string;
+                    radiusM?: number | string;
+                    amenities?: string;
+                    selfContained?: boolean;
+                    page?: number | string;
+                    pageSize?: number | string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SearchEndpointsSearchResult"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2867,6 +2945,16 @@ export interface components {
         AppealRequest: {
             reason: string;
         };
+        AppliedFilters: {
+            type: null | string;
+            /** Format: int32 */
+            minRent: null | number | string;
+            /** Format: int32 */
+            maxRent: null | number | string;
+            amenities: string[];
+            selfContained: null | boolean;
+            nearCampus: boolean;
+        };
         AuditEndpointsAuditItem: {
             kind: string;
             /** Format: date-time */
@@ -3086,6 +3174,10 @@ export interface components {
             status: null | string;
             /** Format: int32 */
             version: null | number | string;
+            poster: components["schemas"]["ListingReadEndpointsPosterInfo"];
+            contactPhone: null | string;
+            reviewSummary: components["schemas"]["ListingReadEndpointsReviewSummary"];
+            isSaved: null | boolean;
         };
         ListingReadEndpointsHistoryItem: {
             fromStatus: null | string;
@@ -3127,6 +3219,20 @@ export interface components {
             /** Format: date-time */
             expiresAt: null | string;
             coverImageUrl: null | string;
+        };
+        ListingReadEndpointsPosterInfo: {
+            displayName: string;
+            isBusiness: boolean;
+            businessName: null | string;
+            /** Format: date-time */
+            memberSince: string;
+            verifiedOwner: boolean;
+        };
+        ListingReadEndpointsReviewSummary: {
+            /** Format: double */
+            average: null | number | string;
+            /** Format: int32 */
+            count: number | string;
         };
         ListingReadEndpointsRoom: {
             /** Format: int32 */
@@ -3285,6 +3391,15 @@ export interface components {
         };
         PagedOfAppealItem: {
             items: components["schemas"]["AppealEndpointsAppealItem"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int64 */
+            total: number | string;
+        };
+        PagedOfItem: {
+            items: components["schemas"]["SearchEndpointsItem"][];
             /** Format: int32 */
             page: number | string;
             /** Format: int32 */
@@ -3483,6 +3598,46 @@ export interface components {
         ScanEndpointsReportResponse: {
             /** Format: int64 */
             id: number | string;
+        };
+        SearchEndpointsItem: {
+            /** Format: uuid */
+            listingId: string;
+            listingType: string;
+            title: string;
+            wardName: string;
+            streetAddress: string;
+            location: components["schemas"]["GeoPoint"];
+            coverImageUrl: null | string;
+            room: null | components["schemas"]["SearchEndpointsRoomSummary"];
+            job: null | components["schemas"]["SearchEndpointsJobSummary"];
+            /** Format: int32 */
+            distanceM: number | string;
+            /** Format: date-time */
+            verifiedUntil: null | string;
+        };
+        SearchEndpointsJobSummary: {
+            employerName: string;
+            /** Format: int32 */
+            payVnd: number | string;
+            payUnit: string;
+        };
+        SearchEndpointsRoomSummary: {
+            /** Format: int32 */
+            monthlyRentVnd: number | string;
+            /** Format: double */
+            areaM2: number | string;
+            isSelfContained: boolean;
+        };
+        SearchEndpointsSearchResult: {
+            items: components["schemas"]["SearchEndpointsItem"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int64 */
+            total: number | string;
+            appliedFilters: components["schemas"]["AppliedFilters"];
+            mode: string;
         };
         SessionRefreshResponse: {
             accessToken: string;

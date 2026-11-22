@@ -8,6 +8,7 @@ using TroViec.Api.Features.Appeals;
 using TroViec.Api.Features.Listings;
 using TroViec.Api.Features.Reports;
 using TroViec.Api.Features.Reviews;
+using TroViec.Api.Features.Search;
 using TroViec.Api.Features.Meta;
 using TroViec.Api.Features.Moderation;
 using TroViec.Api.Features.OwnerProfiles;
@@ -49,6 +50,7 @@ builder.Services
     .AddStorage(builder.Configuration)
     .AddDocumentCrypto()
     .AddListings()
+    .AddSearch()
     .AddScanServices(builder.Configuration)
     .AddTrustedProxies(builder.Configuration)
     .AddHealth()
@@ -94,6 +96,7 @@ app.MapScans();
 app.MapMeta();
 app.MapOwnerProfiles();
 app.MapListings();
+app.MapSearch();
 app.MapOwnerModeration();
 app.MapListingModeration();
 app.MapReports();

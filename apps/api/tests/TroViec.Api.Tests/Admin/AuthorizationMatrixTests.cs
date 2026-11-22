@@ -76,6 +76,8 @@ public sealed class AuthorizationMatrixTests(InfraFixture infra, AuthorizationMa
         new("POST", "/api/v1/moderation/owner-documents/{id:long}/access", $"/api/v1/moderation/owner-documents/{Missing}/access", new { }, "401 403 403 ok 403 403"),
         new("GET", "/api/v1/files/documents/{token}", "/api/v1/files/documents/abc", null, "ok ok ok ok ok ok"),
         new("GET", "/api/v1/listings/{listingId:guid}", $"/api/v1/listings/{Guid.Empty}", null, "ok ok ok ok ok ok"),
+        new("GET", "/api/v1/listings/", "/api/v1/listings?lat=21&lng=105.8", null, "ok ok ok ok ok ok"),
+        new("GET", "/api/v1/listings/search", "/api/v1/listings/search?q=phong&lat=21&lng=105.8", null, "ok ok ok ok ok ok"),
         new("GET", "/api/v1/listings/{listingId:guid}/history", $"/api/v1/listings/{Guid.Empty}/history", null, "401 ok ok ok ok ok"),
         new("POST", "/api/v1/listings/", "/api/v1/listings", new { }, "401 ok ok 403 403 ok"),
         new("PUT", "/api/v1/listings/{listingId:guid}", $"/api/v1/listings/{Guid.Empty}", new { }, "401 ok ok 403 403 ok"),

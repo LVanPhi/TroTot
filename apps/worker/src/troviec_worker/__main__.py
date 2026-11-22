@@ -26,12 +26,53 @@ def _consume(settings: Settings) -> None:
         client.close()
 
 
+def _embedder(settings: Settings):  # noqa: ANN202 - TextEmbedder | None
+    from troviec_worker.ml import text_embed
+
+    if not text_embed.available():
+        log.warning("sentence-transformers not installed: /internal/embed answers 503")
+        return None
+    return text_embed.BgeM3Embedder(settings.model_dir)
+
+
 def _serve_embed(settings: Settings) -> None:
+    """HTTP embedding for search queries, plus the listing.embed consumer in a background thread."""
     import uvicorn
 
     from troviec_worker.embed_api import create_app
+    from troviec_worker.jobs import embed_job
+    from troviec_worker.registry import Registry
 
-    uvicorn.run(create_app(settings.internal_api_token), host="0.0.0.0", port=8001, log_config=None)  # noqa: S104
+    embedder = _embedder(settings)
+    pool = make_pool(settings.database_url)
+    registry = Registry(pool)
+    client = make_client(settings.redis_url, settings.read_block_ms)
+    stop = threading.Event()
+    worker = threading.Thread(
+        target=embed_job.run, args=(client, pool, embedder, stop, settings.read_block_ms), daemon=True
+    )
+    worker.start()
+    try:
+        app = create_app(settings.internal_api_token, embedder, lambda: embed_job.model_version_id(registry))
+        uvicorn.run(app, host="0.0.0.0", port=8001, log_config=None)  # noqa: S104 - internal Docker network
+    finally:
+        stop.set()
+        pool.close()
+        client.close()
+
+
+def _embed_backfill(settings: Settings) -> None:
+    from troviec_worker.jobs import embed_job
+    from troviec_worker.registry import Registry
+
+    embedder = _embedder(settings)
+    if embedder is None:
+        raise SystemExit("embed-backfill needs the ml extra (sentence-transformers)")
+    pool = make_pool(settings.database_url)
+    try:
+        embed_job.backfill(pool, embedder, Registry(pool))
+    finally:
+        pool.close()
 
 
 def main() -> None:
@@ -47,7 +88,7 @@ def main() -> None:
     elif args.command == "serve-embed":
         _serve_embed(settings)
     else:
-        log.warning("embed-backfill is not implemented yet (T3.x)")
+        _embed_backfill(settings)
 
 
 if __name__ == "__main__":

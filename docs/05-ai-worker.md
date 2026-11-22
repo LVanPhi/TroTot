@@ -364,6 +364,9 @@ status = 'completed', completed_at = now()`. Sau commit: `XADD troviec:scan-comp
   `{"texts": ["..."]}` (1–16 chuỗi, mỗi chuỗi ≤ 2.000 ký tự) →
   `{"model": "BAAI/bge-m3", "modelVersionId": 3, "dim": 1024, "vectors": [[...]]}`.
 - `listing.embed`: upsert `listing_embeddings` với `model_version_id` của bản `text_embedding` đang chạy.
+- Tiến trình `serve-embed` vừa phục vụ HTTP vừa chạy một luồng nhận `listing.embed`. Không có mô hình (thiếu `ml` extra)
+  hoặc bản `text_embedding` đang chạy không phải `BAAI/bge-m3`/`1` → HTTP trả `503`, việc `listing.embed` được XACK bỏ qua;
+  chạy `embed-backfill` sau khi có mô hình để bù. Worker đọc `amenities`, `room_amenities` (quyền cấp ở `0004`) để ghép câu tóm tắt.
 
 ## Sổ đăng ký mô hình
 

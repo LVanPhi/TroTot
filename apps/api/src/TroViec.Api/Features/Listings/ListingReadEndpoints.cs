@@ -23,7 +23,13 @@ public static class ListingReadEndpoints
     /// </summary>
     public sealed record Detail(Guid ListingId, string ListingType, string Title, string Description, string WardCode,
         string WardName, string StreetAddress, GeoPoint Location, Room? Room, Job? Job, IReadOnlyList<Amenity> Amenities,
-        IReadOnlyList<Image> Images, DateTime? ExpiresAt, string? Status, int? Version);
+        IReadOnlyList<Image> Images, DateTime? ExpiresAt, string? Status, int? Version, PosterInfo Poster, string? ContactPhone,
+        ReviewSummary ReviewSummary, bool? IsSaved);
+
+    /// <summary>Public poster card (US-403): no email, no real name for businesses beyond the business name.</summary>
+    public sealed record PosterInfo(string DisplayName, bool IsBusiness, string? BusinessName, DateTime MemberSince, bool VerifiedOwner);
+
+    public sealed record ReviewSummary(double? Average, int Count);
 
     public sealed record MyListing(Guid ListingId, string ListingType, string Title, string Status, int Version,
         DateTime UpdatedAt, DateTime? ExpiresAt, string? CoverImageUrl);
@@ -76,11 +82,31 @@ public static class ListingReadEndpoints
             new { row.Id }, cancellationToken: ct)))
             .Select(i => new Image(i.Id, urls.ListingImage(i.Key), i.W, i.H, i.Sort)).ToList();
 
+        var signedIn = http.User.Identity?.IsAuthenticated == true;
+        long? viewer = signedIn && long.TryParse(http.User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value,
+            out var v) ? v : null;
+        var extra = await connection.QuerySingleAsync<(string FullName, DateTime CreatedAt, string? Phone, string? OwnerType,
+            string? BusinessName, bool VerifiedOwner, double? Average, int Reviews, bool Saved)>(new CommandDefinition(
+            """
+            SELECT u.full_name, u.created_at, u.phone_e164, op.owner_type::text, op.business_name,
+                   coalesce(op.verified_until > now(), false),
+                   (SELECT round(avg(rating)::numeric, 1)::float8 FROM app.reviews WHERE listing_id = @Id AND status = 'published'),
+                   (SELECT count(*)::int FROM app.reviews WHERE listing_id = @Id AND status = 'published'),
+                   EXISTS (SELECT 1 FROM app.saved_listings s WHERE s.listing_id = @Id AND s.user_id = @Viewer)
+            FROM app.users u LEFT JOIN app.owner_profiles op ON op.user_id = u.id
+            WHERE u.id = @Poster
+            """, new { row.Id, Poster = row.PosterId, Viewer = viewer ?? -1 }, cancellationToken: ct));
+        var isBusiness = extra.OwnerType == "business";
+        var poster = new PosterInfo(isBusiness ? extra.BusinessName! : extra.FullName, isBusiness, extra.BusinessName, extra.CreatedAt,
+            extra.VerifiedOwner);
+
         return (new Detail(row.PublicId, row.ListingType, row.Title, row.Description, row.WardCode, row.WardName,
             row.StreetAddress, new GeoPoint(row.Lat, row.Lng),
             row.MonthlyRentVnd is { } rent ? new Room(rent, row.DepositVnd, row.AreaM2!.Value, row.IsSelfContained!.Value) : null,
             row.EmployerName is { } employer ? new Job(employer, row.PayVnd!.Value, row.PayUnit!, row.HoursPerWeek!.Value) : null,
-            amenities, images, row.ExpiresAt, privileged ? row.Status : null, privileged ? row.Version : null), row.Id, row.PosterId);
+            amenities, images, row.ExpiresAt, privileged ? row.Status : null, privileged ? row.Version : null,
+            poster, signedIn ? extra.Phone : null,   // BR-14: the phone only for signed-in viewers
+            new ReviewSummary(extra.Average, extra.Reviews), signedIn ? extra.Saved : null), row.Id, row.PosterId);
     }
 
     public static async Task<IResult> MineAsync(HttpContext http, NpgsqlDataSource db, MediaUrls urls, string? status, int? page,
