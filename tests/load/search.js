@@ -2,7 +2,7 @@
 import http from "k6/http";
 import { check, sleep } from "k6";
 
-import { api, API_URL, LAT, LNG, summaryFile } from "./common.js";
+import { api, API_URL, LAT, LNG, newVisitor, summaryFile } from "./common.js";
 
 export const options = {
   vus: 20,
@@ -23,6 +23,7 @@ const queries = [
 ];
 
 export default function () {
+  newVisitor();
   const q = encodeURIComponent(queries[Math.floor(Math.random() * queries.length)]);
   const res = http.get(`${API_URL}/api/v1/listings/search?q=${q}&lat=${LAT}&lng=${LNG}&radiusM=5000`, api("search"));
   check(res, {

@@ -120,6 +120,9 @@ Không dùng kịch bản "N người dùng ảo vòng kín" cho `quick-check.js
 10 người dùng ảo gửi liên tục làm hàng đợi dồn ~50 s và p95 vỡ dù hệ thống đủ cho tải thật. Muốn đo sức chịu tối đa
 thì tăng dần tốc độ đến cho tới khi p95 vượt 10 s và ghi lại ngưỡng đó.
 
+Kết quả lần đo đầu (stack tunnel trên máy cá nhân, 22/11/2026): [research/results/e6-2026-11-22.md](../research/results/e6-2026-11-22.md).
+Cách chạy k6 trong mạng Docker và cờ `SPREAD_IPS`: `tests/load/README.md`.
+
 Chạy trên production trước khi mở thử nghiệm (ngoài giờ cao điểm), tạm nâng hạn mức `POST /scans` cho IP của máy
 chạy k6, và ghi kết quả vào báo cáo (thí nghiệm E6).
 

@@ -3,7 +3,7 @@
 import http from "k6/http";
 import { check, sleep } from "k6";
 
-import { api, API_URL, BASE_URL, LAT, LNG, summaryFile } from "./common.js";
+import { api, API_URL, BASE_URL, LAT, LNG, newVisitor, page, summaryFile } from "./common.js";
 
 export const options = {
   vus: 50,
@@ -23,7 +23,8 @@ const filters = [
 ];
 
 export default function () {
-  check(http.get(`${BASE_URL}/`), { "home 200": (r) => r.status === 200 });
+  newVisitor();
+  check(http.get(`${BASE_URL}/`, page("home")), { "home 200": (r) => r.status === 200 });
 
   const q = filters[Math.floor(Math.random() * filters.length)];
   const list = http.get(`${API_URL}/api/v1/listings?${q}&lat=${LAT}&lng=${LNG}&radiusM=5000&pageSize=20`, api("listings"));
@@ -34,7 +35,7 @@ export default function () {
     const id = items[Math.floor(Math.random() * items.length)].listingId;
     check(http.get(`${API_URL}/api/v1/listings/${id}`, api("detail")), { "detail 200": (r) => r.status === 200 });
     check(http.get(`${API_URL}/api/v1/listings/${id}/reviews`, api("reviews")), { "reviews 200": (r) => r.status === 200 });
-    check(http.get(`${BASE_URL}/tin/${id}`), { "detail page 200": (r) => r.status === 200 });
+    check(http.get(`${BASE_URL}/tin/${id}`, page("detail-page")), { "detail page 200": (r) => r.status === 200 });
   }
   sleep(1 + Math.random() * 2);
 }
