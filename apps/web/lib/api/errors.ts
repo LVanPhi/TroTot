@@ -20,6 +20,13 @@ const messages: Record<string, string> = {
   "auth.refresh_invalid": "Phiên đăng nhập đã hết",
   "auth.refresh_reused": "Phiên bị thu hồi vì lý do an toàn. Vui lòng đăng nhập lại",
   "phone.sms_unavailable": "Hệ thống chưa gửi được SMS; liên hệ quản trị viên để được xác thực số",
+  "scan.input_required": "Dán nội dung hoặc tải ít nhất một ảnh",
+  "scan.quota_exceeded": "Bạn đã dùng hết lượt kiểm tra hôm nay",
+  "scan.not_found": "Không tìm thấy lượt kiểm tra",
+  "image.unsupported_type": "Chỉ nhận ảnh JPEG, PNG, WebP",
+  "image.too_large": "Mỗi ảnh tối đa 5 MB",
+  "image.too_many": "Tối đa 5 ảnh",
+  "report.already_open": "Bạn đã báo cáo mục này",
   rate_limited: "Thao tác quá nhanh, vui lòng thử lại sau",
   "system.retry_later": "Hệ thống đang bận, thử lại sau giây lát",
 };
