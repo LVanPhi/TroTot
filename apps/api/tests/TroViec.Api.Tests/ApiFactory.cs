@@ -62,6 +62,7 @@ public sealed class ApiFactory(InfraFixture infra, string environment = "Develop
                 ["Crypto:DocumentKeys"] = $"{{\"k1\":\"{TestKey(11)}\",\"k2\":\"{TestKey(12)}\"}}",
                 ["Crypto:ActiveDocumentKeyId"] = "k1",
                 ["Crypto:SignedUrlKey"] = TestKey(13),
+                ["Crypto:IdentifierHmacKey"] = IdentifierHasherTests.SharedKeyBase64,
             };
             foreach (var (key, value) in overrides ?? new Dictionary<string, string?>())
                 settings[key] = value;

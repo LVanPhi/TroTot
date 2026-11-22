@@ -83,6 +83,10 @@ public sealed class AuthorizationMatrixTests(InfraFixture infra, AuthorizationMa
         new("DELETE", "/api/v1/listings/{listingId:guid}/images/{imageId:long}", $"/api/v1/listings/{Guid.Empty}/images/{Missing}", null, "401 ok ok 403 403 ok"),
         new("PUT", "/api/v1/listings/{listingId:guid}/images/order", $"/api/v1/listings/{Guid.Empty}/images/order", new { }, "401 ok ok 403 403 ok"),
         new("GET", "/api/v1/me/listings", "/api/v1/me/listings", null, "401 ok ok 403 403 ok"),
+        new("POST", "/api/v1/listings/{listingId:guid}/submit", $"/api/v1/listings/{Guid.Empty}/submit", new { }, "401 ok ok 403 403 ok"),
+        new("POST", "/api/v1/listings/{listingId:guid}/renew", $"/api/v1/listings/{Guid.Empty}/renew", new { }, "401 ok ok 403 403 ok"),
+        new("POST", "/api/v1/listings/{listingId:guid}/unpublish", $"/api/v1/listings/{Guid.Empty}/unpublish", new { }, "401 ok ok 403 403 ok"),
+        new("POST", "/api/v1/listings/{listingId:guid}/remove", $"/api/v1/listings/{Guid.Empty}/remove", new { }, "401 ok ok 403 403 ok"),
     ];
 
     /// <summary>One factory and six signed-in callers shared by every case in this class.</summary>

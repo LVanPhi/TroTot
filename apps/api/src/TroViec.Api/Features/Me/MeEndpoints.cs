@@ -11,6 +11,8 @@ namespace TroViec.Api.Features.Me;
 /// <summary>/api/v1/me: the caller's own account. RequireAuthorization() without a permission (AGENTS.md rule 11).</summary>
 public static class MeEndpoints
 {
+    public const string AccountDeletedReason = "Người dùng xóa tài khoản";
+
     public sealed record UpdateRequest(string FullName);
 
     public sealed record DeleteRequest(string Password);
@@ -59,7 +61,7 @@ public static class MeEndpoints
     /// </summary>
     public static async Task<IResult> DeleteAsync(
         [Microsoft.AspNetCore.Mvc.FromBody] DeleteRequest request, HttpContext http, NpgsqlDataSource db, RefreshTokenStore refreshTokens,
-        UserVersionStore versions, Infrastructure.Storage.IObjectStorage storage,
+        UserVersionStore versions, Listings.ListingTransitionService transitions, Infrastructure.Storage.IObjectStorage storage,
         Microsoft.Extensions.Options.IOptions<Infrastructure.Storage.StorageBuckets> buckets, CancellationToken ct)
     {
         var userId = CurrentUser.Id(http.User);
@@ -70,8 +72,16 @@ public static class MeEndpoints
 
         await using (var tx = await connection.BeginTransactionAsync(ct))
         {
-            // TODO(T3.3): US-106 AC2 — move every listing not yet removed to 'removed' through ListingTransitionService
-            // ("Người dùng xóa tài khoản"), and answer 409 me.listing_in_screening while one is still screening.
+            // US-106 AC2: every listing not yet removed → removed; a listing still screening cannot move yet.
+            var listings = (await connection.QueryAsync<(long Id, string Status, int Version)>(new CommandDefinition(
+                "SELECT id, status::text, version FROM app.listings WHERE poster_id = @Id AND status <> 'removed' FOR UPDATE",
+                new { Id = userId }, tx, cancellationToken: ct))).ToList();
+            if (listings.Any(l => l.Status == "screening")) throw new ProblemException("me.listing_in_screening");
+            foreach (var l in listings)
+                // An open appeal must not block erasure: the listing goes away together with the account.
+                await transitions.TransitionAsync(connection, tx, l.Id, l.Version,
+                    Infrastructure.Db.DbEnum.FromDb<Listings.ListingStatus>(l.Status), Listings.ListingStatus.Removed, userId,
+                    AccountDeletedReason, rules: new Listings.TransitionRules(ResolvesAppeal: true), ct: ct);
             // US-106 AC3: delete owner document files, keep the rows with object_key NULL + erased_at.
             var documents = (await connection.QueryAsync<(long Id, string? ObjectKey)>(new CommandDefinition(
                 "SELECT id, object_key FROM app.owner_documents WHERE owner_id = @Id AND erased_at IS NULL",
