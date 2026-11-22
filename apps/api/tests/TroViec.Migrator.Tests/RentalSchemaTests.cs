@@ -14,6 +14,8 @@ public sealed class RentalSchemaTests(PostgresFixture db) : IAsyncLifetime
 {
     private const string Ward = "98001";
 
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
     public async ValueTask InitializeAsync()
     {
         await using var migrator = new NpgsqlConnection(db.MigratorConnectionString);
@@ -86,9 +88,9 @@ public sealed class RentalSchemaTests(PostgresFixture db) : IAsyncLifetime
     private static async Task<PostgresException> FailsAsync(
         NpgsqlConnection c, NpgsqlTransaction tx, string sql, object? args = null)
     {
-        await tx.SaveAsync("expect_failure");
+        await tx.SaveAsync("expect_failure", Ct);
         var ex = await Should.ThrowAsync<PostgresException>(() => c.ExecuteAsync(sql, args, tx));
-        await tx.RollbackAsync("expect_failure");
+        await tx.RollbackAsync("expect_failure", Ct);
         return ex;
     }
 
@@ -117,8 +119,8 @@ public sealed class RentalSchemaTests(PostgresFixture db) : IAsyncLifetime
     public async Task Leases_OverlappingSentLeaseOnSameRoom_ViolatesExclusion()
     {
         await using var c = Connect("app_api");
-        await c.OpenAsync();
-        await using var tx = await c.BeginTransactionAsync();
+        await c.OpenAsync(Ct);
+        await using var tx = await c.BeginTransactionAsync(Ct);
         var s = await SeedAsync(c, tx);
         await SendAsync(c, tx, s.Lease);
 
@@ -135,8 +137,8 @@ public sealed class RentalSchemaTests(PostgresFixture db) : IAsyncLifetime
     public async Task Leases_BackToBackOrCancelled_DoNotConflict()
     {
         await using var c = Connect("app_api");
-        await c.OpenAsync();
-        await using var tx = await c.BeginTransactionAsync();
+        await c.OpenAsync(Ct);
+        await using var tx = await c.BeginTransactionAsync(Ct);
         var s = await SeedAsync(c, tx);
         await SendAsync(c, tx, s.Lease);
 
@@ -158,8 +160,8 @@ public sealed class RentalSchemaTests(PostgresFixture db) : IAsyncLifetime
     public async Task Leases_DurationOutsideOneToThirtySixMonths_ViolatesCheck()
     {
         await using var c = Connect("app_api");
-        await c.OpenAsync();
-        await using var tx = await c.BeginTransactionAsync();
+        await c.OpenAsync(Ct);
+        await using var tx = await c.BeginTransactionAsync(Ct);
         var s = await SeedAsync(c, tx);
 
         var tooShort = await FailsAsync(c, tx, """
@@ -181,8 +183,8 @@ public sealed class RentalSchemaTests(PostgresFixture db) : IAsyncLifetime
     public async Task LeaseParties_LandlordNotOwnerOrTenantIsOwner_RaisesInvalidParty()
     {
         await using var c = Connect("app_api");
-        await c.OpenAsync();
-        await using var tx = await c.BeginTransactionAsync();
+        await c.OpenAsync(Ct);
+        await using var tx = await c.BeginTransactionAsync(Ct);
         var s = await SeedAsync(c, tx);
         var other = await SeedAsync(c, tx);
 
@@ -202,8 +204,8 @@ public sealed class RentalSchemaTests(PostgresFixture db) : IAsyncLifetime
     public async Task LeaseParties_FifthTenant_RaisesInvalidParty()
     {
         await using var c = Connect("app_api");
-        await c.OpenAsync();
-        await using var tx = await c.BeginTransactionAsync();
+        await c.OpenAsync(Ct);
+        await using var tx = await c.BeginTransactionAsync(Ct);
         var s = await SeedAsync(c, tx);
         for (var i = 1; i <= 4; i++)
         {
@@ -223,8 +225,8 @@ public sealed class RentalSchemaTests(PostgresFixture db) : IAsyncLifetime
     public async Task LeaseParties_SameEmailTwiceCaseInsensitive_ViolatesUnique()
     {
         await using var c = Connect("app_api");
-        await c.OpenAsync();
-        await using var tx = await c.BeginTransactionAsync();
+        await c.OpenAsync(Ct);
+        await using var tx = await c.BeginTransactionAsync(Ct);
         var s = await SeedAsync(c, tx);
         await c.ExecuteAsync(
             "INSERT INTO app.lease_parties (lease_id, role, invite_email) VALUES (@Lease, 'tenant', 'a@example.com')",
@@ -241,18 +243,18 @@ public sealed class RentalSchemaTests(PostgresFixture db) : IAsyncLifetime
     public async Task Invoices_IssuedWithTotalNotEqualToLines_FailsAtCommit()
     {
         await using var c = Connect("app_api");
-        await c.OpenAsync();
-        await using var tx = await c.BeginTransactionAsync();
+        await c.OpenAsync(Ct);
+        await using var tx = await c.BeginTransactionAsync(Ct);
         var s = await SeedAsync(c, tx);
         var invoice = await IssuedInvoiceAsync(c, tx, s.Lease, "2027-01");
         await c.ExecuteAsync("SET CONSTRAINTS ALL IMMEDIATE", transaction: tx);   // totals match: passes
 
-        await tx.SaveAsync("mismatch");
+        await tx.SaveAsync("mismatch", Ct);
         await c.ExecuteAsync("SET CONSTRAINTS ALL DEFERRED", transaction: tx);
         await c.ExecuteAsync("UPDATE app.invoices SET total_vnd = 2600000 WHERE id = @Invoice", new { Invoice = invoice }, tx);
         var ex = await Should.ThrowAsync<PostgresException>(
             () => c.ExecuteAsync("SET CONSTRAINTS ALL IMMEDIATE", transaction: tx));
-        await tx.RollbackAsync("mismatch");
+        await tx.RollbackAsync("mismatch", Ct);
 
         ex.MessageText.ShouldBe("rental.invoice_total_mismatch");
     }
@@ -261,8 +263,8 @@ public sealed class RentalSchemaTests(PostgresFixture db) : IAsyncLifetime
     public async Task InvoiceLines_ChangedAfterIssue_RaisesNotEditable()
     {
         await using var c = Connect("app_api");
-        await c.OpenAsync();
-        await using var tx = await c.BeginTransactionAsync();
+        await c.OpenAsync(Ct);
+        await using var tx = await c.BeginTransactionAsync(Ct);
         var s = await SeedAsync(c, tx);
         var invoice = await IssuedInvoiceAsync(c, tx, s.Lease, "2027-01");
 
@@ -281,8 +283,8 @@ public sealed class RentalSchemaTests(PostgresFixture db) : IAsyncLifetime
     public async Task InvoiceLines_MeterEndBelowStart_ViolatesCheck()
     {
         await using var c = Connect("app_api");
-        await c.OpenAsync();
-        await using var tx = await c.BeginTransactionAsync();
+        await c.OpenAsync(Ct);
+        await using var tx = await c.BeginTransactionAsync(Ct);
         var s = await SeedAsync(c, tx);
         var invoice = await c.ExecuteScalarAsync<long>(
             "INSERT INTO app.invoices (lease_id, period, total_vnd) VALUES (@Lease, '2027-01', 0) RETURNING id",
@@ -301,8 +303,8 @@ public sealed class RentalSchemaTests(PostgresFixture db) : IAsyncLifetime
     public async Task Invoices_SamePeriodAllowedOnlyAfterVoid()
     {
         await using var c = Connect("app_api");
-        await c.OpenAsync();
-        await using var tx = await c.BeginTransactionAsync();
+        await c.OpenAsync(Ct);
+        await using var tx = await c.BeginTransactionAsync(Ct);
         var s = await SeedAsync(c, tx);
         var first = await IssuedInvoiceAsync(c, tx, s.Lease, "2027-02");
 
@@ -321,8 +323,8 @@ public sealed class RentalSchemaTests(PostgresFixture db) : IAsyncLifetime
     public async Task Payments_NetAboveTotal_RaisesExceedsTotal()
     {
         await using var c = Connect("app_api");
-        await c.OpenAsync();
-        await using var tx = await c.BeginTransactionAsync();
+        await c.OpenAsync(Ct);
+        await using var tx = await c.BeginTransactionAsync(Ct);
         var s = await SeedAsync(c, tx);
         var invoice = await IssuedInvoiceAsync(c, tx, s.Lease, "2027-01");
         await c.ExecuteAsync("""
@@ -342,8 +344,8 @@ public sealed class RentalSchemaTests(PostgresFixture db) : IAsyncLifetime
     public async Task Payments_ReversalRules_EnforcedAndAppendOnly()
     {
         await using var c = Connect("app_api");
-        await c.OpenAsync();
-        await using var tx = await c.BeginTransactionAsync();
+        await c.OpenAsync(Ct);
+        await using var tx = await c.BeginTransactionAsync(Ct);
         var s = await SeedAsync(c, tx);
         var invoice = await IssuedInvoiceAsync(c, tx, s.Lease, "2027-01");
         var payment = await c.ExecuteScalarAsync<long>("""
@@ -382,8 +384,8 @@ public sealed class RentalSchemaTests(PostgresFixture db) : IAsyncLifetime
     public async Task Payments_OnDraftInvoice_RaisesNotPayable()
     {
         await using var c = Connect("app_api");
-        await c.OpenAsync();
-        await using var tx = await c.BeginTransactionAsync();
+        await c.OpenAsync(Ct);
+        await using var tx = await c.BeginTransactionAsync(Ct);
         var s = await SeedAsync(c, tx);
         var invoice = await c.ExecuteScalarAsync<long>(
             "INSERT INTO app.invoices (lease_id, period, total_vnd) VALUES (@Lease, '2027-03', 0) RETURNING id",
@@ -401,8 +403,8 @@ public sealed class RentalSchemaTests(PostgresFixture db) : IAsyncLifetime
     public async Task PayoutAccounts_SelfReviewOrBadHolderName_ViolatesChecks()
     {
         await using var c = Connect("app_api");
-        await c.OpenAsync();
-        await using var tx = await c.BeginTransactionAsync();
+        await c.OpenAsync(Ct);
+        await using var tx = await c.BeginTransactionAsync(Ct);
         var s = await SeedAsync(c, tx);
         const string insert = """
             INSERT INTO app.payout_accounts (owner_id, bank_id, account_ciphertext, key_id, account_hmac, account_hint,
@@ -426,21 +428,21 @@ public sealed class RentalSchemaTests(PostgresFixture db) : IAsyncLifetime
         long lease, room, invoice;
         await using (var api = Connect("app_api"))
         {
-            await api.OpenAsync();
-            await using var tx = await api.BeginTransactionAsync();
+            await api.OpenAsync(Ct);
+            await using var tx = await api.BeginTransactionAsync(Ct);
             var s = await SeedAsync(api, tx);
             await SendAsync(api, tx, s.Lease);
             await api.ExecuteAsync(
                 "UPDATE app.leases SET status = 'active', activated_at = now() WHERE id = @Lease", new { s.Lease }, tx);
             await api.ExecuteAsync("UPDATE app.rooms SET status = 'occupied' WHERE id = @Room", new { s.Room }, tx);
             invoice = await IssuedInvoiceAsync(api, tx, s.Lease, "2027-01");
-            await tx.CommitAsync();
+            await tx.CommitAsync(Ct);
             (lease, room) = (s.Lease, s.Room);
         }
 
         await using var m = Connect("app_maintenance");
-        await m.OpenAsync();
-        await using var mtx = await m.BeginTransactionAsync();
+        await m.OpenAsync(Ct);
+        await using var mtx = await m.BeginTransactionAsync(Ct);
         await m.ExecuteAsync(
             "UPDATE app.leases SET status = 'ended', ended_at = now(), version = version + 1 WHERE id = @Lease",
             new { Lease = lease }, mtx);
@@ -450,7 +452,7 @@ public sealed class RentalSchemaTests(PostgresFixture db) : IAsyncLifetime
         (await m.ExecuteScalarAsync<int>("SELECT count(*) FROM app.invoice_lines WHERE invoice_id = @Invoice",
             new { Invoice = invoice }, mtx)).ShouldBe(0);
         (await m.ExecuteAsync("DELETE FROM app.leases WHERE id = @Lease", new { Lease = lease }, mtx)).ShouldBe(1);
-        await mtx.RollbackAsync();
+        await mtx.RollbackAsync(Ct);
     }
 
     [Fact]
