@@ -47,6 +47,9 @@ const messages: Record<string, string> = {
   "document.duplicate": "Tệp này đã được tải lên",
   "document.unsupported_type": "Chỉ nhận ảnh JPEG, PNG, WebP hoặc PDF",
   "document.too_large": "Tệp tối đa 10 MB",
+  "review.already_exists": "Bạn đã đánh giá tin này",
+  "review.not_student": "Chỉ sinh viên được đánh giá",
+  "review.own_listing": "Không thể đánh giá tin của chính mình",
   rate_limited: "Thao tác quá nhanh, vui lòng thử lại sau",
   "system.retry_later": "Hệ thống đang bận, thử lại sau giây lát",
 };

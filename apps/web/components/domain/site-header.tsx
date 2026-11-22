@@ -13,9 +13,17 @@ export function SiteHeader() {
   return (
     <header className="border-b border-border">
       <nav aria-label="Chính" className="mx-auto flex w-full max-w-5xl items-center justify-between gap-2 px-4 py-1">
-        <Link href="/" className="min-h-11 content-center font-semibold">
-          Trọ &amp; Việc Sạch
-        </Link>
+        <div className="flex items-center gap-1">
+          <Link href="/" className="min-h-11 content-center pr-2 font-semibold">
+            Trọ &amp; Việc Sạch
+          </Link>
+          <Link href="/tin" className={navLink}>
+            Tìm tin
+          </Link>
+          <Link href="/kiem-tra" className={navLink}>
+            Kiểm tra tin
+          </Link>
+        </div>
         {status === "signed_in" ? (
           <Link href="/toi" className={navLink}>
             <CircleUserRound aria-hidden className="size-5" />

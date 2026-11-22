@@ -19,17 +19,18 @@ const schema = z.object({
 });
 type Values = z.infer<typeof schema>;
 
-/** POST /scans/{id}/reports (US-406); shown only when the API says canReport. */
-export function ReportScanButton({ scanId }: { scanId: string }) {
+/** POST /scans/{id}/reports or /listings/{id}/reports (US-406, neutral category labels). */
+export function ReportButton({ target }: { target: { scanId: string } | { listingId: string } }) {
   const [open, setOpen] = useState(false);
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { description: "" } });
   const { errors, isSubmitting } = form.formState;
 
   const submit = form.handleSubmit(async (values) => {
-    const { error } = await api.POST("/api/v1/scans/{scanId}/reports", {
-      params: { path: { scanId } },
-      body: { category: values.category, description: values.description || null },
-    });
+    const body = { category: values.category, description: values.description || null };
+    const { error } =
+      "scanId" in target
+        ? await api.POST("/api/v1/scans/{scanId}/reports", { params: { path: { scanId: target.scanId } }, body })
+        : await api.POST("/api/v1/listings/{listingId}/reports", { params: { path: { listingId: target.listingId } }, body });
     if (error) {
       applyProblemToForm(error, form.setError, ["category", "description"]);
       return;
@@ -46,7 +47,7 @@ export function ReportScanButton({ scanId }: { scanId: string }) {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Báo cáo tin này</DialogTitle>
+          <DialogTitle>{"scanId" in target ? "Báo cáo nội dung này" : "Báo cáo tin này"}</DialogTitle>
           <DialogDescription>Báo cáo giúp cán bộ đối chiếu. Thông tin của bạn không hiển thị cho người khác.</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
@@ -81,4 +82,9 @@ export function ReportScanButton({ scanId }: { scanId: string }) {
       </DialogContent>
     </Dialog>
   );
+}
+
+/** Report button of the scan result page. */
+export function ReportScanButton({ scanId }: { scanId: string }) {
+  return <ReportButton target={{ scanId }} />;
 }
