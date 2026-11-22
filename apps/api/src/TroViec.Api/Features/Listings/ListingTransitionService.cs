@@ -63,7 +63,6 @@ public sealed class ListingTransitionService
         DateTime? newExpiresAt = null, TransitionRules? rules = null, CancellationToken ct = default)
     {
         rules ??= new TransitionRules();
-        if (!ListingLifecycle.IsAllowed(from, to)) throw new ProblemException("listing.invalid_transition");
 
         var guard = await conn.QuerySingleOrDefaultAsync<(long PosterId, bool OpenAppeal)?>(new CommandDefinition(
             """
@@ -75,6 +74,8 @@ public sealed class ListingTransitionService
         if (guard.Value.OpenAppeal && !rules.ResolvesAppeal) throw new ProblemException("appeal.pending");
         if (rules.ModeratorAction && guard.Value.PosterId == actorId)
             throw new ProblemException("moderation.conflict_of_interest");
+        // After the appeal check: with an open appeal every other change answers appeal.pending (BR-04).
+        if (!ListingLifecycle.IsAllowed(from, to)) throw new ProblemException("listing.invalid_transition");
 
         var rows = await conn.ExecuteAsync(new CommandDefinition(
             """

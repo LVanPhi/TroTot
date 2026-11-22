@@ -46,6 +46,8 @@ public static class ErrorCatalog
         ["listing.images_required"] = new(422, "Thêm ít nhất một ảnh"),
         ["listing.renew_too_early"] = new(409, "Chỉ gia hạn khi tin sắp hết hạn"),
         ["report.already_open"] = new(409, "Bạn đã báo cáo mục này"),
+        ["report.already_resolved"] = new(409, "Báo cáo này đã được xử lý"),
+        ["appeal.already_resolved"] = new(409, "Kháng nghị này đã được xử lý"),
         ["review.already_exists"] = new(409, "Bạn đã đánh giá tin này"),
         ["review.not_student"] = new(403, "Chỉ sinh viên được đánh giá"),
         ["review.own_listing"] = new(403, "Không thể đánh giá tin của chính mình"),
