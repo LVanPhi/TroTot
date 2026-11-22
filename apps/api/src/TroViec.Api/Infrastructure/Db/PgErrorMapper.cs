@@ -18,6 +18,7 @@ public static class PgErrorMapper
         ["uq_appeals_listing_transition_id"] = "appeal.already_used",
         ["uq_owner_documents_sha256"] = "document.duplicate",
         ["uq_model_versions_one_active"] = "model.activation_conflict",
+        ["uq_criteria_code"] = "criteria.code_taken",
     };
 
     /// <summary>True for serialization failures and deadlocks, which callers may retry once.</summary>

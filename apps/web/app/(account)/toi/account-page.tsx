@@ -49,6 +49,11 @@ export function AccountPage() {
             Kiểm duyệt
           </Link>
         ) : null}
+        {["user.manage", "criteria.manage", "model.manage", "stats.view", "audit.view_all"].some((p) => can(me, p)) ? (
+          <Link href="/quan-tri/nguoi-dung" className={linkClass}>
+            Quản trị
+          </Link>
+        ) : null}
       </nav>
       <Section title="Điều kiện đăng tin">
         <PostingChecklist posting={me.posting} />

@@ -92,6 +92,7 @@ app.MapHealth();
 app.MapAuth();
 app.MapMe();
 app.MapAdminUsers();
+app.MapAdminCatalog();
 app.MapScans();
 app.MapMeta();
 app.MapOwnerProfiles();

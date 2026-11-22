@@ -32,4 +32,8 @@
     <ProjectReference Include="..\TroViec.Security\TroViec.Security.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Aggregator configs shipped by the worker; the admin page shows their thresholds before activation. -->
+    <EmbeddedResource Include="$(MSBuildProjectDirectory)/../../../worker/models/aggregator/*.json" LogicalName="aggregator.%(Filename).json" />
+  </ItemGroup>
 </Project>

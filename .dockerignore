@@ -8,4 +8,6 @@
 .env
 apps/web
 apps/worker
+# The API embeds the aggregator configs (admin page shows their thresholds).
+!apps/worker/models/aggregator
 research
