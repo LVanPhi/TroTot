@@ -59,7 +59,8 @@ public static class MeEndpoints
     /// </summary>
     public static async Task<IResult> DeleteAsync(
         [Microsoft.AspNetCore.Mvc.FromBody] DeleteRequest request, HttpContext http, NpgsqlDataSource db, RefreshTokenStore refreshTokens,
-        UserVersionStore versions, CancellationToken ct)
+        UserVersionStore versions, Infrastructure.Storage.IObjectStorage storage,
+        Microsoft.Extensions.Options.IOptions<Infrastructure.Storage.StorageBuckets> buckets, CancellationToken ct)
     {
         var userId = CurrentUser.Id(http.User);
         await using var connection = await db.OpenConnectionAsync(ct);
@@ -71,8 +72,11 @@ public static class MeEndpoints
         {
             // TODO(T3.3): US-106 AC2 — move every listing not yet removed to 'removed' through ListingTransitionService
             // ("Người dùng xóa tài khoản"), and answer 409 me.listing_in_screening while one is still screening.
-            // TODO(T3.1): US-106 AC3 — delete owner document files from object storage, keep rows with
-            // object_key NULL + erased_at.
+            // US-106 AC3: delete owner document files, keep the rows with object_key NULL + erased_at.
+            var documents = (await connection.QueryAsync<(long Id, string? ObjectKey)>(new CommandDefinition(
+                "SELECT id, object_key FROM app.owner_documents WHERE owner_id = @Id AND erased_at IS NULL",
+                new { Id = userId }, tx, cancellationToken: ct))).ToList();
+            await OwnerProfiles.OwnerProfileEndpoints.EraseAsync(connection, tx, storage, buckets.Value.OwnerDocuments, documents, ct);
             await connection.ExecuteAsync(new CommandDefinition(
                 """
                 UPDATE app.users

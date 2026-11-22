@@ -5,6 +5,9 @@ using TroViec.Api.Features.Admin;
 using TroViec.Api.Features.Auth;
 using TroViec.Api.Features.Me;
 using TroViec.Api.Features.Meta;
+using TroViec.Api.Features.Moderation;
+using TroViec.Api.Features.OwnerProfiles;
+using TroViec.Api.Infrastructure.Crypto;
 using TroViec.Api.Features.Scans;
 using TroViec.Api.Infrastructure.Auth;
 using TroViec.Api.Infrastructure.Config;
@@ -40,6 +43,7 @@ builder.Services
     .AddRedis(builder.Configuration)
     .AddObjectStorage(builder.Configuration)
     .AddStorage(builder.Configuration)
+    .AddDocumentCrypto()
     .AddScanServices(builder.Configuration)
     .AddTrustedProxies(builder.Configuration)
     .AddHealth()
@@ -83,6 +87,8 @@ app.MapMe();
 app.MapAdminUsers();
 app.MapScans();
 app.MapMeta();
+app.MapOwnerProfiles();
+app.MapOwnerModeration();
 app.MapHub<TroViec.Api.Realtime.ScanHub>(TroViec.Api.Realtime.ScanHub.Path).AllowAnonymous();
 
 app.Run();

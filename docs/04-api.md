@@ -134,7 +134,7 @@ Path=/api/v1/auth; Max-Age=2592000`. Chi tiết xoay vòng: [07-security.md](07-
 | GET | `/me/saved-listings` | `listing.save` | Tin đã lưu (kèm tin hết hạn, gắn nhãn) |
 | PUT / DELETE | `/me/saved-listings/{listingId}` | `listing.save` | Lưu / bỏ lưu → `204` (idempotent) |
 | GET | `/me/appeals` | `listing.appeal` | Kháng nghị của tôi |
-| GET / PUT | `/me/owner-profile` | `listing.create` | `{ownerType, businessName?, taxCode?}` |
+| GET / PUT | `/me/owner-profile` | `listing.create` | `{ownerType, businessName?, taxCode?}` → kèm `verifiedUntil`; chưa có hồ sơ → `404`. Đổi loại, tên hoặc mã số thuế của hồ sơ đã xác minh thì xóa xác minh (cán bộ đã xác minh danh tính cũ) |
 | GET | `/me/owner-documents` | `listing.create` | Loại giấy tờ, trạng thái duyệt, ngày tải (không trả tệp) |
 | POST | `/me/owner-documents` | `listing.create` | multipart `file`, `docType`, `consent=true` → `201 {id}` |
 | DELETE | `/me/owner-documents/{id}` | `listing.create` + chủ hồ sơ | Xóa tệp, giữ dòng với `erasedAt` → `204` |
@@ -350,7 +350,7 @@ danh mục đang dùng (`is_active`).
 | POST | `/moderation/owner-profiles/{userId}/verify` | `owner.verify` | → `{verifiedUntil}` (now + 12 tháng); chưa có giấy tờ `accepted` → `owner.no_accepted_document` |
 | POST | `/moderation/reviews/{id}/hide` | `review.moderate` | `{reason}` |
 | GET | `/moderation/audit/me` | `audit.view_own` | Quyết định và lần mở giấy tờ của chính tôi |
-| GET | `/files/documents/{token}` | token trong URL | Giải mã và trả tệp; `Cache-Control: no-store`; token hết hạn 5 phút |
+| GET | `/files/documents/{token}` | token trong URL | Giải mã và trả tệp; `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`; token sai/hết hạn 5 phút → `403 document.token_invalid`; tệp đã xóa → `410 document.erased` |
 
 Mọi thao tác quyết định trả về `{status, version}` mới và đẩy `ListingUpdated` qua hub kiểm duyệt.
 Thao tác nhắm vào tin, hồ sơ, giấy tờ, báo cáo hay kháng nghị liên quan tới chính người gọi (người gọi là

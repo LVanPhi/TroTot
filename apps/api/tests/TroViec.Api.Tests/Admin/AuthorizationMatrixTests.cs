@@ -64,6 +64,17 @@ public sealed class AuthorizationMatrixTests(InfraFixture infra, AuthorizationMa
         new("GET", "/api/v1/meta/amenities", "/api/v1/meta/amenities", null, "ok ok ok ok ok ok"),
         new("GET", "/api/v1/meta/criteria", "/api/v1/meta/criteria", null, "ok ok ok ok ok ok"),
         new("GET", "/api/v1/meta/campuses", "/api/v1/meta/campuses", null, "ok ok ok ok ok ok"),
+        new("GET", "/api/v1/me/owner-profile", "/api/v1/me/owner-profile", null, "401 ok ok 403 403 ok"),
+        new("PUT", "/api/v1/me/owner-profile", "/api/v1/me/owner-profile", new { }, "401 ok ok 403 403 ok"),
+        new("GET", "/api/v1/me/owner-documents", "/api/v1/me/owner-documents", null, "401 ok ok 403 403 ok"),
+        new("POST", "/api/v1/me/owner-documents", "/api/v1/me/owner-documents", null, "401 ok ok 403 403 ok"),
+        new("DELETE", "/api/v1/me/owner-documents/{id:long}", $"/api/v1/me/owner-documents/{Missing}", null, "401 ok ok 403 403 ok"),
+        new("GET", "/api/v1/moderation/owner-profiles", "/api/v1/moderation/owner-profiles", null, "401 403 403 ok 403 403"),
+        new("GET", "/api/v1/moderation/owner-profiles/{userId:long}", $"/api/v1/moderation/owner-profiles/{Missing}", null, "401 403 403 ok 403 403"),
+        new("POST", "/api/v1/moderation/owner-profiles/{userId:long}/verify", $"/api/v1/moderation/owner-profiles/{Missing}/verify", null, "401 403 403 ok 403 403"),
+        new("POST", "/api/v1/moderation/owner-documents/{id:long}/review", $"/api/v1/moderation/owner-documents/{Missing}/review", new { }, "401 403 403 ok 403 403"),
+        new("POST", "/api/v1/moderation/owner-documents/{id:long}/access", $"/api/v1/moderation/owner-documents/{Missing}/access", new { }, "401 403 403 ok 403 403"),
+        new("GET", "/api/v1/files/documents/{token}", "/api/v1/files/documents/abc", null, "ok ok ok ok ok ok"),
     ];
 
     /// <summary>One factory and six signed-in callers shared by every case in this class.</summary>
