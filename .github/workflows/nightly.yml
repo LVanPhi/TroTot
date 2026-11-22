@@ -1,6 +1,8 @@
-# Nightly OWASP ZAP baseline on the full Docker stack (docs/07-security.md, Kiểm thử bảo mật). The project has no
-# staging: the runner brings up postgres/redis/garage/mailpit, migrates, starts api and web, then scans both.
-# High-risk alerts fail the run; the HTML/JSON reports are kept as artifacts.
+# Nightly runs on the full Docker stack (the project has no staging): the runner brings up postgres/redis/garage/
+# mailpit, migrates, seeds the demo data, starts api, worker (LLM_FAKE=1) and web, then
+#   1. Playwright: the four end-to-end flows (docs/09-testing.md, Đầu cuối), run 3 times in a row;
+#   2. OWASP ZAP baseline on web and api (docs/07-security.md): High alerts fail the run.
+# Reports are kept as artifacts.
 name: nightly
 
 on:
@@ -48,9 +50,9 @@ env:
   API_INTERNAL_URL: http://localhost:8080
 
 jobs:
-  zap-baseline:
+  stack:
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
@@ -65,13 +67,20 @@ jobs:
           cache: pnpm
           cache-dependency-path: apps/web/pnpm-lock.yaml
 
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: apps/worker/uv.lock
+
       - name: Random keys for this run
         run: |
           key() { openssl rand -base64 32; }
           {
             echo "GARAGE_RPC_SECRET=$(openssl rand -hex 32)"
             echo "Jwt__SigningKey=$(key)"
-            echo "Crypto__IdentifierHmacKey=$(key)"
+            hmac=$(key)
+            echo "Crypto__IdentifierHmacKey=$hmac"
+            echo "IDENTIFIER_HMAC_KEY=$hmac"
             echo "Crypto__SignedUrlKey=$(key)"
             echo "Crypto__DocumentKeys={\"k1\":\"$(key)\"}"
           } >> "$GITHUB_ENV"
@@ -82,9 +91,25 @@ jobs:
           docker compose -f infra/docker-compose.yml --env-file .env up -d --build --wait
           bash infra/garage/init.sh | tee garage-keys.txt
           grep -E '^S3__(AccessKey|SecretKey)=' garage-keys.txt >> "$GITHUB_ENV"
+          grep -E '^S3_(ACCESS_KEY|SECRET_KEY)=' garage-keys.txt >> "$GITHUB_ENV"
 
-      - name: Migrate
-        run: dotnet run --project apps/api/src/TroViec.Migrator -- migrate
+      - name: Migrate, demo data, fake LLM
+        run: |
+          dotnet run --project apps/api/src/TroViec.Migrator -- migrate
+          dotnet run --project apps/api/src/TroViec.Migrator -- seed-demo
+          docker compose -f infra/docker-compose.yml --env-file .env exec -T -e PGPASSWORD=zap-migrator postgres             psql -h localhost -U app_migrator -d troviec -v ON_ERROR_STOP=1 -f - < apps/web/e2e/register-fake-llm.sql
+
+      - name: Start worker (LLM_FAKE=1, rules + fake LLM, real Tesseract)
+        working-directory: apps/worker
+        env:
+          DATABASE_URL: postgresql://app_worker:zap-worker@localhost:5432/troviec
+          REDIS_URL: redis://localhost:6379/0
+          S3_ENDPOINT: http://localhost:3900
+          LLM_FAKE: "1"
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends tesseract-ocr tesseract-ocr-vie
+          uv sync --frozen
+          nohup uv run python -m troviec_worker consume > ../../worker.log 2>&1 &
 
       - name: Start api
         run: |
@@ -102,7 +127,16 @@ jobs:
           for _ in $(seq 1 60); do curl -fsS http://localhost:3000/ -o /dev/null && exit 0; sleep 2; done
           cat ../../web.log; exit 1
 
+      - name: Playwright (4 flows, 3 runs in a row)
+        working-directory: apps/web
+        env:
+          E2E_STUDENT_DOMAIN: sv.example.edu.vn
+        run: |
+          pnpm exec playwright install --with-deps chromium
+          for run in 1 2 3; do echo "run $run"; pnpm e2e; done
+
       - name: ZAP baseline (web and api)
+        if: ${{ !cancelled() }}
         run: |
           mkdir -p zap && chmod 777 zap
           for target in web:http://localhost:3000/ api:http://localhost:8080/api/v1/meta/criteria; do
@@ -112,6 +146,7 @@ jobs:
           done
 
       - name: Fail on High alerts
+        if: ${{ !cancelled() }}
         run: |
           python3 - <<'PY'
           import json, sys
@@ -129,9 +164,12 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
-          name: zap-reports
+          name: nightly-reports
           path: |
             zap/
+            apps/web/playwright-report/
+            apps/web/test-results/
             api.log
             web.log
+            worker.log
           retention-days: 14
