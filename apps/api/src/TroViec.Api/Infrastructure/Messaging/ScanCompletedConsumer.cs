@@ -20,6 +20,7 @@ public sealed class ScanCompletedHandler(
     NpgsqlDataSource db,
     IHubContext<ScanHub> hub,
     ListingTransitionService transitions,
+    ModerationNotifier moderation,
     ILogger<ScanCompletedHandler> logger)
 {
     public async Task HandleAsync(ScanCompletedEvent evt, CancellationToken ct)
@@ -60,6 +61,7 @@ public sealed class ScanCompletedHandler(
             ListingStatus.PendingReview, systemUser, reason: null, ct: ct);
         await tx.CommitAsync(ct);
         logger.LogInformation("Listing {ListingId} screened by scan {ScanId}, now pending_review", listingId, scanId);
+        await moderation.QueueChangedAsync(ct);
     }
 }
 

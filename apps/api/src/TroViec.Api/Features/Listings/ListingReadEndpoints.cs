@@ -39,6 +39,14 @@ public static class ListingReadEndpoints
     public static async Task<IResult> DetailAsync(Guid listingId, HttpContext http, NpgsqlDataSource db, MediaUrls urls, CancellationToken ct)
     {
         await using var connection = await db.OpenConnectionAsync(ct);
+        var (detail, _, _) = await LoadAsync(connection, listingId, urls, http, ct);
+        return Results.Ok(detail);
+    }
+
+    /// <summary>Detail with the internal id and poster id; throws 404 when the caller may not see the listing.</summary>
+    public static async Task<(Detail Detail, long Id, long PosterId)> LoadAsync(NpgsqlConnection connection, Guid listingId, MediaUrls urls,
+        HttpContext http, CancellationToken ct)
+    {
         var row = await connection.QuerySingleOrDefaultAsync<Row>(new CommandDefinition(
             """
             SELECT l.id, l.public_id, l.poster_id, l.listing_type::text AS listing_type, l.title, l.description,
@@ -68,11 +76,11 @@ public static class ListingReadEndpoints
             new { row.Id }, cancellationToken: ct)))
             .Select(i => new Image(i.Id, urls.ListingImage(i.Key), i.W, i.H, i.Sort)).ToList();
 
-        return Results.Ok(new Detail(row.PublicId, row.ListingType, row.Title, row.Description, row.WardCode, row.WardName,
+        return (new Detail(row.PublicId, row.ListingType, row.Title, row.Description, row.WardCode, row.WardName,
             row.StreetAddress, new GeoPoint(row.Lat, row.Lng),
             row.MonthlyRentVnd is { } rent ? new Room(rent, row.DepositVnd, row.AreaM2!.Value, row.IsSelfContained!.Value) : null,
             row.EmployerName is { } employer ? new Job(employer, row.PayVnd!.Value, row.PayUnit!, row.HoursPerWeek!.Value) : null,
-            amenities, images, row.ExpiresAt, privileged ? row.Status : null, privileged ? row.Version : null));
+            amenities, images, row.ExpiresAt, privileged ? row.Status : null, privileged ? row.Version : null), row.Id, row.PosterId);
     }
 
     public static async Task<IResult> MineAsync(HttpContext http, NpgsqlDataSource db, MediaUrls urls, string? status, int? page,
@@ -113,21 +121,27 @@ public static class ListingReadEndpoints
         var poster = IsPoster(http, listing.PosterId);
         if (!moderator && !poster) throw new ProblemException(listing.IsPublic ? "listing.not_owner" : "listing.not_found");
 
+        return Results.Ok(await LoadHistoryAsync(connection, listing.Id, listing.PosterId, showNames: moderator && !poster, ct));
+    }
+
+    /// <summary>Timeline rows; without names the poster sees "Bạn", "Hệ thống" or "Cán bộ xác minh".</summary>
+    public static async Task<List<HistoryItem>> LoadHistoryAsync(NpgsqlConnection connection, long listingId, long posterId, bool showNames,
+        CancellationToken ct)
+    {
         var rows = await connection.QueryAsync<(string? From, string To, string? Reason, long ActorId, string ActorName, DateTime At)>(
             new CommandDefinition(
                 """
                 SELECT t.from_status::text, t.to_status::text, t.reason, t.actor_id, u.full_name, t.created_at
                 FROM app.listing_transitions t JOIN app.users u ON u.id = t.actor_id
                 WHERE t.listing_id = @Id ORDER BY t.created_at, t.id
-                """, new { listing.Id }, cancellationToken: ct));
+                """, new { Id = listingId }, cancellationToken: ct));
         var system = await connection.ExecuteScalarAsync<long>(new CommandDefinition("SELECT app.system_user_id()", cancellationToken: ct));
-        var items = rows.Select(r => new HistoryItem(r.From, r.To, r.Reason,
-            moderator && !poster ? r.ActorName
-            : r.ActorId == listing.PosterId ? "Bạn"
+        return rows.Select(r => new HistoryItem(r.From, r.To, r.Reason,
+            showNames ? r.ActorName
+            : r.ActorId == posterId ? "Bạn"
             : r.ActorId == system ? "Hệ thống"
             : "Cán bộ xác minh",
             r.At)).ToList();
-        return Results.Ok(items);
     }
 
     private static bool IsPoster(HttpContext http, long posterId) =>

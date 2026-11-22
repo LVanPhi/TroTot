@@ -92,6 +92,7 @@ app.MapMeta();
 app.MapOwnerProfiles();
 app.MapListings();
 app.MapOwnerModeration();
+app.MapListingModeration();
 app.MapHub<TroViec.Api.Realtime.ScanHub>(TroViec.Api.Realtime.ScanHub.Path).AllowAnonymous();
 
 app.Run();
