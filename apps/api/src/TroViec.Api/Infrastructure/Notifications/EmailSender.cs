@@ -73,4 +73,40 @@ public static class EmailTemplates
 
         Trọ & Việc Sạch
         """);
+
+    /// <summary>US-902: the poster learns the outcome of a moderation decision; neutral wording, link to the listing page.</summary>
+    public static EmailMessage ListingDecision(string to, string fullName, string title, ListingNotice notice, string? reason, string link)
+    {
+        var (subject, what) = notice switch
+        {
+            ListingNotice.Approved => ("Tin của bạn đã được duyệt", "đã được cán bộ xác minh duyệt và đang hiển thị 90 ngày"),
+            ListingNotice.Rejected => ("Tin của bạn chưa được duyệt", "chưa được duyệt"),
+            ListingNotice.Hidden => ("Tin của bạn đang tạm ẩn", "đang được tạm ẩn"),
+            ListingNotice.AppealAccepted => ("Kháng nghị được chấp nhận", "đã được hiển thị lại sau khi xem xét kháng nghị"),
+            _ => ("Kết quả kháng nghị", "giữ nguyên quyết định sau khi xem xét kháng nghị"),
+        };
+        var because = reason is null ? "" : $"\nLý do / ghi chú của cán bộ: {reason}\n";
+        var appeal = notice is ListingNotice.Rejected or ListingNotice.Hidden
+            ? "\nBạn có thể sửa tin hoặc gửi kháng nghị trong 7 ngày tại trang quản lý tin.\n"
+            : "";
+        return new(to, $"{subject} – Trọ & Việc Sạch",
+            $"""
+            Chào {fullName},
+
+            Tin "{title}" {what}.
+            {because}{appeal}
+            Xem tin: {link}
+
+            Trọ & Việc Sạch
+            """);
+    }
+}
+
+public enum ListingNotice
+{
+    Approved,
+    Rejected,
+    Hidden,
+    AppealAccepted,
+    AppealRejected,
 }

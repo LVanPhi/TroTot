@@ -24,6 +24,7 @@ public sealed class InfraFixture : IAsyncLifetime
 
     public string ApiConnectionString { get; private set; } = "";
     public string MigratorConnectionString { get; private set; } = "";
+    public string MaintenanceConnectionString { get; private set; } = "";
     public string RedisConnectionString { get; private set; } = "";
     public string S3Endpoint { get; private set; } = "";
     public string S3AccessKey { get; private set; } = "";
@@ -81,6 +82,8 @@ public sealed class InfraFixture : IAsyncLifetime
             _ => { });
         ApiConnectionString =
             new NpgsqlConnectionStringBuilder(admin.ConnectionString) { Username = "app_api", Password = ApiPassword }.ConnectionString;
+        MaintenanceConnectionString =
+            new NpgsqlConnectionStringBuilder(admin.ConnectionString) { Username = "app_maintenance", Password = "test-maintenance" }.ConnectionString;
         RedisConnectionString = _redis.GetConnectionString();
         // Two provinces and a few communes for /meta and claimedWardCode (codes 90, 91, 90001...).
         await UnitImporter.ImportFileAsync(MigratorConnectionString,

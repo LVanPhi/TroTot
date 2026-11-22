@@ -156,6 +156,16 @@ public static class ListingModerationEndpoints
 
         var version = request.Version + 1;
         await notifier.ListingUpdatedAsync(listingId, DbEnum.ToDb(to), version, ct);
+        // US-902: tell the poster (restore needs no email: it follows a moderator's own reconsideration).
+        Infrastructure.Notifications.ListingNotice? notice = to switch
+        {
+            ListingStatus.Verified when from == ListingStatus.PendingReview => Infrastructure.Notifications.ListingNotice.Approved,
+            ListingStatus.Rejected => Infrastructure.Notifications.ListingNotice.Rejected,
+            ListingStatus.Hidden => Infrastructure.Notifications.ListingNotice.Hidden,
+            _ => null,
+        };
+        if (notice is { } n)
+            await http.RequestServices.GetRequiredService<Infrastructure.Notifications.ListingMailer>().NotifyAsync(listingId, n, reason, ct);
         return Results.Ok(new DecisionResponse(DbEnum.ToDb(to), version));
     }
 }
