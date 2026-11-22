@@ -79,6 +79,8 @@ Lỗi kiểm tra dữ liệu dùng `code = "validation.failed"`, `status = 400`,
 | `listing.images_required` | 422 | Tin phòng chưa có ảnh khi gửi duyệt | Thêm ít nhất một ảnh |
 | `listing.renew_too_early` | 409 | Gia hạn khi còn > 7 ngày | Chỉ gia hạn khi tin sắp hết hạn |
 | `report.already_open` | 409 | Đã có báo cáo đang mở | Bạn đã báo cáo mục này |
+| `report.already_resolved` | 409 | Báo cáo đã được xác nhận hoặc bác bỏ | Báo cáo này đã được xử lý |
+| `appeal.already_resolved` | 409 | Kháng nghị đã được chấp nhận hoặc bác | Kháng nghị này đã được xử lý |
 | `review.already_exists` | 409 | Đã đánh giá tin này | — |
 | `review.not_student` / `review.own_listing` | 403 | Trigger `check_review` | — |
 | `appeal.already_open` | 409 | Đã có kháng nghị đang mở | — |

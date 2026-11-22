@@ -55,10 +55,8 @@ public static class ListingLifecycleEndpoints
         await using var connection = await db.OpenConnectionAsync(ct);
         await using var tx = await connection.BeginTransactionAsync(ct);
         var listing = await ListingAccess.OwnedAsync(connection, tx, listingId, CurrentUser.Id(http.User), ct);
-        var from = Status(listing);
-        if (from is not (ListingStatus.Verified or ListingStatus.Rejected or ListingStatus.Expired))
-            throw new ProblemException("listing.invalid_transition");
-        await transitions.TransitionAsync(connection, tx, listing.Id, request.Version, from, ListingStatus.Draft, listing.PosterId,
+        // The service answers appeal.pending first, then listing.invalid_transition for any source without a → draft edge.
+        await transitions.TransitionAsync(connection, tx, listing.Id, request.Version, Status(listing), ListingStatus.Draft, listing.PosterId,
             reason: null, ct: ct);
         await tx.CommitAsync(ct);
         return Results.Ok(new LifecycleResponse("draft", request.Version + 1));

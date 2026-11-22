@@ -62,6 +62,25 @@ public static class GetScan
         return Results.Ok(new Response(scan.PublicId, scan.Status, scan.CreatedAt, scan.CompletedAt, scan.ErrorCode, assessment, canReport));
     }
 
+    /// <summary>Result of one quick check by internal id, for moderators handling a report on it (US-606).</summary>
+    public static async Task<ListingScanResult?> QuickCheckByIdAsync(NpgsqlConnection connection, long scanId, CancellationToken ct)
+    {
+        var scan = await connection.QuerySingleOrDefaultAsync<ScanRow>(new CommandDefinition(
+            """
+            SELECT s.id, s.public_id, s.status::text AS status, s.error_code, s.created_at, s.completed_at, s.claimed_rent_vnd,
+                   a.id AS assessment_id, a.score, a.risk_level::text AS risk_level,
+                   a.text_signal, a.image_signal, a.price_signal, a.community_signal,
+                   a.price_median_vnd, a.price_sample_size, a.price_vnd
+            FROM app.scans s
+            LEFT JOIN LATERAL (SELECT * FROM app.assessments a1 WHERE a1.scan_id = s.id
+                               ORDER BY a1.id DESC LIMIT 1) a ON true
+            WHERE s.id = @Id
+            """, new { Id = scanId }, cancellationToken: ct));
+        if (scan is null) return null;
+        var assessment = scan is { Status: "completed", AssessmentId: { } id } ? await LoadAssessmentAsync(connection, scan, id, ct) : null;
+        return new ListingScanResult(scan.PublicId, scan.Status, scan.ErrorCode, scan.CreatedAt, assessment);
+    }
+
     public sealed record ListingScanResult(Guid ScanId, string Status, string? ErrorCode, DateTime CreatedAt, Assessment? Assessment);
 
     /// <summary>
