@@ -41,7 +41,7 @@ Copilot…) xây toàn bộ hệ thống theo từng task, đúng kiến trúc v
 | Bảng phân quyền | Sinh viên được kháng nghị tin của mình; thêm quyền lưu tin, đánh giá | Bạn đã cho sinh viên đăng tin; lưu tin và đánh giá có trong phần yêu cầu |
 | Quản trị viên chỉnh ngưỡng điểm | Ngưỡng thuộc phiên bản bộ gộp; quản trị viên đổi ngưỡng bằng cách kích hoạt phiên bản khác | Ngưỡng phải được đánh giá trên tập validation trước khi dùng thật |
 | Tập test ≥ 300 tin thật | **Tập test ≥ 100 tin** (gán nhãn 300–500 tin, chia 60/20/20 theo nhóm), báo cáo kèm khoảng tin cậy 95% | 300–500 tin gán nhãn không thể cho tập test ≥ 300 sau khi chia train/validation/test |
-| VPS trả phí, dịch vụ ngoài chưa chọn | **Mặc định 0 đồng**: VPS ARM miễn phí, tên miền `.id.vn`, không bắt buộc LLM, không cần SMS (cán bộ xác thực số thủ công), email/sao lưu/giám sát gói miễn phí | Đồ án không có kinh phí; chi tiết và rủi ro ở `docs/08-deployment.md`, mục Chi phí |
+| VPS trả phí, dịch vụ ngoài chưa chọn | **Mặc định 0 đồng**: VPS ARM miễn phí hoặc máy cá nhân + Cloudflare Tunnel khi chưa có VPS, tên miền `.id.vn`, không bắt buộc LLM, không cần SMS (cán bộ xác thực số thủ công), email/sao lưu/giám sát gói miễn phí | Đồ án không có kinh phí; chi tiết và rủi ro ở `docs/08-deployment.md`, mục Chi phí |
 
 Những thay đổi này chưa được cập nhật vào đề cương; nên sửa đề cương cho khớp trước khi nộp.
 

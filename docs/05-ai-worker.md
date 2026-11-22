@@ -424,7 +424,7 @@ nằm trong migration hay seed demo, để không bao giờ có mặt ở produc
 | Rủi ro | Dấu hiệu sớm | Phương án |
 |---|---|---|
 | Thiếu RAM khi chạy BGE-M3 + CLIP + PhoBERT trên VPS 8 GB | OOM kill, swap tăng | Tạm tắt PhoBERT; dùng VPS ≥ 12 GB (gói ARM miễn phí, 08-deployment.md); đổi sang mô hình embedding nhỏ hơn (cần migration đổi `VECTOR(1024)`) |
-| VPS ARM miễn phí ít nhân (2 OCPU) làm OCR/CLIP chậm | p95 > 10 s ngay ở T2.7 | Đo sớm; giảm song song OCR; chuyển VPS 4 vCPU trả phí |
+| VPS ARM miễn phí ít nhân (2 OCPU) làm OCR/CLIP chậm | p95 > 10 s ngay ở T2.7 | Đo sớm; giảm song song OCR; tắt CLIP (chỉ pHash) nếu cần; chạy worker trên máy mạnh hơn (máy cá nhân/phòng lab, nối vào cùng Redis/PostgreSQL) — không dùng dịch vụ trả phí |
 | OCR tiếng Việt sai nhiều trên ảnh mờ | Tỉ lệ ký tự sai cao trên tập mẫu | Hướng dẫn chụp màn hình gốc; cho dán chữ; thử PaddleOCR trong E1 |
 | LLM chậm làm vỡ p95 | p95 > 10 s | Timeout 7 s + luật dự phòng; cache theo `input_sha256`; chọn mô hình nhanh |
 | Câu chèn qua mặt LLM | E4 > 10% bị hạ mức | Tách dữ liệu khỏi lệnh; bắt buộc câu trích; luật regex độc lập; `injectionFloor` |

@@ -13,7 +13,8 @@ một lệnh; mỗi lần merge vào `main` thì GitHub Actions build image và 
 
 VPS: Ubuntu 24.04 LTS, tối thiểu 2–4 vCPU, 8 GB RAM (≥ 12 GB nếu bật PhoBERT), 50–80 GB SSD. Mặc định dùng
 phương án **miễn phí** Oracle Cloud Always Free (Ampere A1, ARM64) — điều kiện và rủi ro ở mục
-[Chi phí và dịch vụ miễn phí](#chi-phí-và-dịch-vụ-miễn-phí); dự phòng là VPS trả phí đặt tại Việt Nam. Mọi image
+[Chi phí và dịch vụ miễn phí](#chi-phí-và-dịch-vụ-miễn-phí); chưa có VPS (Oracle đòi thẻ khi đăng ký) thì chạy cả stack
+production trên máy cá nhân sau một tunnel miễn phí — mục [Chạy không cần VPS](#chạy-không-cần-vps). Mọi image
 build cho cả `linux/amd64` và `linux/arm64` nên đổi giữa hai phương án chỉ là đổi máy. VPS hoặc nơi sao lưu đặt
 ngoài Việt Nam là chuyển dữ liệu xuyên biên giới (07-security.md, mục Riêng tư và LLM).
 Cài Docker Engine + Compose v2; UFW chỉ mở 22 (SSH bằng khóa), 80, 443 (với Oracle còn phải mở 80/443 trong
@@ -28,17 +29,18 @@ thay đổi — **kiểm lại trang chính thức khi đăng ký** và ghi ngà
 
 | Nhu cầu | Mặc định miễn phí | Lưu ý | Dự phòng |
 |---|---|---|---|
-| VPS | Oracle Cloud Always Free — máy Ampere A1 (ARM64) | Tài liệu Oracle ghi 4 OCPU / 24 GB; nhiều người dùng báo hạn mức bị giảm còn 2 OCPU / 12 GB từ 8/2026 (vẫn đủ RAM, CPU yếu hơn — đo p95 sớm ở T2.7). Máy "nhàn rỗi" (CPU p95 < 20% trong 7 ngày) có thể bị thu hồi; tải thử nghiệm của đồ án rất thấp nên dễ bị coi là nhàn rỗi — tìm hiểu điều khoản hiện hành (nhiều người nâng tài khoản lên Pay As You Go, vẫn không tính phí tài nguyên Always Free) và luôn có sao lưu ngoài. Vùng gần nhất ở nước ngoài (Singapore, Nhật) → chuyển dữ liệu xuyên biên giới. Đăng ký cần thẻ để xác minh | VPS trả phí đặt tại Việt Nam, 4 vCPU / 8 GB |
+| VPS | Oracle Cloud Always Free — máy Ampere A1 (ARM64) | Tài liệu Oracle ghi 4 OCPU / 24 GB; nhiều người dùng báo hạn mức bị giảm còn 2 OCPU / 12 GB từ 8/2026 (vẫn đủ RAM, CPU yếu hơn — đo p95 sớm ở T2.7). Máy "nhàn rỗi" (CPU p95 < 20% trong 7 ngày) có thể bị thu hồi; tải thử nghiệm của đồ án rất thấp nên dễ bị coi là nhàn rỗi — tìm hiểu điều khoản hiện hành (nhiều người nâng tài khoản lên Pay As You Go, vẫn không tính phí tài nguyên Always Free) và luôn có sao lưu ngoài. Vùng gần nhất ở nước ngoài (Singapore, Nhật) → chuyển dữ liệu xuyên biên giới. Đăng ký cần thẻ để xác minh | Máy cá nhân hoặc máy phòng lab chạy `docker-compose.prod.yml` + Cloudflare Tunnel (mục Chạy không cần VPS); máy phải bật trong thời gian thử nghiệm |
 | Tên miền | `.id.vn` (VNNIC): công dân Việt Nam 18–23 tuổi được miễn phí; Thông tư 149/2026/TT-BTC nâng thời gian miễn phí lên 3 năm cho tên miền đăng ký mới từ 01/01/2027 | Đăng ký qua nhà đăng ký tên miền .vn, xác thực eKYC bằng CCCD | Tên miền con miễn phí của DuckDNS (Let's Encrypt vẫn cấp chứng chỉ qua HTTP-01) |
-| HTTPS | Let's Encrypt qua Caddy | — | — |
+| HTTPS | Let's Encrypt qua Caddy | — | Sau tunnel: HTTPS do Cloudflare/ngrok cấp, Caddy chỉ chạy HTTP |
 | LLM | **Không dùng LLM**: luật dự phòng + PhoBERT tự host (đã là đường chạy chính khi chưa đăng ký `llm`) | Chất lượng tín hiệu chữ thấp hơn; so sánh trong E1 | Groq gói Free (OpenAI-compatible, giới hạn theo từng mô hình cỡ ~1.000 request/ngày; bật Zero Data Retention). **Không** dùng gói không trả phí của Gemini API vì dữ liệu được dùng để cải thiện sản phẩm và có người đọc (07-security.md) |
-| SMS OTP | Không cần: dev dùng `console`; production cán bộ quản trị xác thực số thủ công (`POST /admin/users/{id}/phone`) | Phải gọi điện / gặp trực tiếp chủ số trước khi xác thực | Nhà cung cấp SMS trả phí (tin nhắn thương hiệu cần đăng ký) |
+| SMS OTP | Không cần: dev dùng `console`; production cán bộ quản trị xác thực số thủ công (`POST /admin/users/{id}/phone`) | Phải gọi điện / gặp trực tiếp chủ số trước khi xác thực | Không cần dự phòng: xác thực thủ công là phương án chính thức của đồ án |
 | Email | Brevo gói Free: SMTP, 300 email/ngày, không cần thẻ | Email có chân trang "Sent with Brevo"; cấu hình SPF/DKIM cho tên miền gửi; dev dùng Mailpit | Gmail SMTP với mật khẩu ứng dụng |
 | Sao lưu ngoài | Backblaze B2: 10 GB miễn phí, S3 API (WAL-G, rclone dùng được), không cần thẻ | Nhà cung cấp ở nước ngoài → ghi vào hồ sơ đánh giá tác động | IDrive e2 (10 GB miễn phí) |
 | Giám sát uptime | UptimeRobot gói Free: 50 monitor, chu kỳ 5 phút | Gói Free chỉ cho mục đích phi thương mại — đồ án phù hợp | Healthchecks.io gói Free cho job định kỳ |
 | Cảnh báo | Telegram bot | — | Email |
 | CI/CD, registry | Repo **public**: GitHub Actions không giới hạn phút với runner chuẩn, có runner arm64 `ubuntu-24.04-arm` miễn phí; GHCR hiện miễn phí lưu trữ image | Không commit bí mật (đã là quy tắc); repo private thì runner tính theo phút của gói (GitHub Student Developer Pack cho gói Pro) | Build image ngay trên VPS |
 | Bản đồ | OpenFreeMap (không cần key) | Luôn hiện attribution OpenStreetMap | Tự host tile |
+| Đưa ra Internet khi không có VPS | Cloudflare Tunnel: quick tunnel `*.trycloudflare.com` không cần tài khoản; tunnel có tên cần tên miền quản lý trên Cloudflare (gói Free) | Không mở cổng router; WebSocket (SignalR) chạy được; URL quick tunnel đổi mỗi lần khởi động lại `cloudflared` | ngrok gói Free (1 tên miền tĩnh, nhưng trang HTML hiện trang cảnh báo trước khi vào) |
 
 Hệ quả kỹ thuật của phương án miễn phí: image đa kiến trúc (ARM64), Dockerfile PostgreSQL dựa trên `postgres:18`,
 `LLM_DAILY_CALL_LIMIT` thấp hơn hạn mức gói LLM, monitor 5 phút, và hồ sơ đánh giá tác động liệt kê các bên ở
@@ -347,6 +349,30 @@ systemd timer trên VPS (giờ UTC; 19:00 UTC = 02:00 giờ Việt Nam):
 | `troviec-media-sync` | hằng ngày 20:30 UTC | `rclone sync` bucket `listing-images`, `owner-documents` (đã mã hóa) sang nơi lưu ngoài; **không** sao lưu `scan-images` |
 
 Timer `troviec-basebackup`, `troviec-dump`, `troviec-media-sync` để tắt ở T0.8 và bật ở T4.4 cùng `archive_mode`.
+
+## Chạy không cần VPS
+
+Khi chưa có VPS, chạy **đúng stack production** trên máy cá nhân (Docker Desktop hoặc Linux) và đưa ra Internet
+qua tunnel miễn phí. Caddy chạy chế độ HTTP (`infra/caddy/Caddyfile.tunnel`, cùng route, header, lọc
+`access_token` như bản production); tunnel lo HTTPS. Không mở cổng router, không cần IP tĩnh.
+
+```bash
+cd infra
+cp ../.env.example .env            # điền mật khẩu/khóa như production; TAG = tag image trên GHCR
+# 1. Quick tunnel (không cần tài khoản), URL ngẫu nhiên:
+docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml --env-file .env --profile quick up -d
+docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml logs cloudflared | grep trycloudflare.com
+# 2. Đặt DOMAIN=<tên vừa in> (không kèm https://) trong .env rồi chạy lại lệnh up -d để api/web nhận địa chỉ.
+# Tunnel có tên (địa chỉ cố định): tạo tunnel ở Cloudflare Zero Trust trỏ về http://caddy:80,
+# đặt CLOUDFLARE_TUNNEL_TOKEN và DOMAIN trong .env, dùng --profile token thay cho --profile quick.
+```
+
+Sau đó chạy migrator và `seed-demo` như bình thường (`docker compose … run --rm migrator`). Kiểm tại máy:
+`http://localhost:8088`.
+
+Giới hạn (ghi vào báo cáo nếu dùng cho thử nghiệm): máy phải bật suốt thời gian thử nghiệm; số đo k6 (E6) là của
+máy này chứ không phải VPS ARM 2 OCPU; systemd timer (job đêm, sao lưu) thay bằng Task Scheduler/cron của máy;
+dữ liệu nằm trên máy cá nhân nên càng cần sao lưu ngoài (Backblaze B2 vẫn miễn phí).
 
 ## Sao lưu và khôi phục
 

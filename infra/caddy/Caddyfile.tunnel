@@ -1,0 +1,65 @@
+# Caddy behind a tunnel (Cloudflare Tunnel or ngrok) on a personal machine: the tunnel terminates HTTPS and forwards
+# plain HTTP here, so no certificates and no port 443 (docs/08-deployment.md, Chạy không cần VPS).
+# Same routes, headers and log filter as the production Caddyfile.
+{
+    auto_https off
+    servers {
+        # The tunnel client runs on the Docker network: keep the client IP it puts in X-Forwarded-For.
+        trusted_proxies static private_ranges
+    }
+}
+
+:80 {
+    encode zstd gzip
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), microphone=(), geolocation=(self)"
+        X-Frame-Options "DENY"
+        -Server
+    }
+
+    # /health/ready chỉ dùng trong mạng Docker; Caddy xếp handle theo độ cụ thể của đường dẫn
+    handle /health/ready {
+        respond 404
+    }
+
+    # Caddyfile không cho viết khối "{ … }" trên một dòng, mỗi handle phải xuống dòng
+    handle /api/* {
+        reverse_proxy api:8080
+    }
+    handle /hubs/* {
+        reverse_proxy api:8080
+    }
+    handle /health/* {
+        reverse_proxy api:8080
+    }
+
+    handle_path /media/listing-images/* {
+        reverse_proxy garage:3902 {
+            header_up Host listing-images.web.garage.localhost
+        }
+        header Cache-Control "public, max-age=604800, immutable"
+    }
+
+    handle {
+        reverse_proxy web:3000
+    }
+
+    log {
+        output file /data/access.log {
+            roll_size 50MiB
+            roll_keep_for 336h
+        }
+        format filter {
+            wrap json
+            fields {
+                request>uri query {
+                    delete access_token    # token SignalR trong query không được nằm trong log
+                }
+            }
+        }
+    }
+}
