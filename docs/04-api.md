@@ -61,7 +61,7 @@ Lỗi kiểm tra dữ liệu dùng `code = "validation.failed"`, `status = 400`,
 | `auth.refresh_invalid` | 401 | Refresh token sai / hết hạn | Phiên đăng nhập đã hết |
 | `auth.refresh_reused` | 401 | Refresh token cũ bị dùng lại | Phiên bị thu hồi vì lý do an toàn |
 | `scan.input_required` | 422 | Không có chữ lẫn ảnh | Dán nội dung hoặc tải ít nhất một ảnh |
-| `scan.quota_exceeded` | 429 | Vượt hạn mức BR-05 | Bạn đã dùng hết lượt hôm nay |
+| `scan.quota_exceeded` | 429 | Vượt hạn mức BR-05; kèm header `Retry-After` (giây tới 0 giờ Việt Nam) và trường `resetAt` | Bạn đã dùng hết lượt hôm nay |
 | `scan.not_found` | 404 | Sai `scanId` hoặc đã xóa | Không tìm thấy lượt kiểm tra |
 | `image.unsupported_type` | 415 | Magic bytes không phải JPEG/PNG/WebP | Chỉ nhận ảnh JPEG, PNG, WebP |
 | `image.too_large` | 413 | > 5 MB | Ảnh tối đa 5 MB |
@@ -129,7 +129,7 @@ Path=/api/v1/auth; Max-Age=2592000`. Chi tiết xoay vòng: [07-security.md](07-
 | GET | `/me` | đăng nhập | Thông tin tài khoản, vai trò, quyền, điều kiện đăng tin |
 | PATCH | `/me` | đăng nhập | `{fullName}` |
 | DELETE | `/me` | đăng nhập | `{password}` → `204`; ẩn danh hóa và gỡ mọi tin (US-106); còn tin `screening` → `409 me.listing_in_screening` |
-| GET | `/me/scans` | đăng nhập | Lượt Kiểm tra tin của tôi trong 30 ngày (`source = quick_check`, phân trang) |
+| GET | `/me/scans` | đăng nhập | Lượt Kiểm tra tin của tôi còn lưu (`source = quick_check`, 30 ngày hoặc 1 năm nếu đã báo cáo; phân trang): `{scanId, status, createdAt, completedAt, score, riskLevel}` — không trả lại nội dung hay ảnh gốc |
 | GET | `/me/listings?status=` | `listing.create` | Tin của tôi mọi trạng thái |
 | GET | `/me/saved-listings` | `listing.save` | Tin đã lưu (kèm tin hết hạn, gắn nhãn) |
 | PUT / DELETE | `/me/saved-listings/{listingId}` | `listing.save` | Lưu / bỏ lưu → `204` (idempotent) |

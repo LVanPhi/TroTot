@@ -86,6 +86,8 @@ internal sealed class ProblemExceptionHandler(
         }
 
         httpContext.Response.StatusCode = problem.Status!.Value;
+        foreach (var (name, value) in problemException?.Headers ?? new Dictionary<string, string>())
+            httpContext.Response.Headers[name] = value;
         return await problemDetails.TryWriteAsync(new ProblemDetailsContext
         {
             HttpContext = httpContext,

@@ -23,6 +23,7 @@ public sealed class InfraFixture : IAsyncLifetime
     private IContainer? _mailpit;
 
     public string ApiConnectionString { get; private set; } = "";
+    public string MigratorConnectionString { get; private set; } = "";
     public string RedisConnectionString { get; private set; } = "";
     public string S3Endpoint { get; private set; } = "";
     public string S3AccessKey { get; private set; } = "";
@@ -37,7 +38,7 @@ public sealed class InfraFixture : IAsyncLifetime
         var image = new ImageFromDockerfileBuilder()
             .WithDockerfileDirectory(repoRoot)
             .WithDockerfile("infra/postgres/Dockerfile")
-            .WithName("troviec-postgres-test:latest")
+            .WithName("troviec-postgres-api-test:latest")
             .WithCleanUp(false)
             .Build();
         await image.CreateAsync();
@@ -72,13 +73,18 @@ public sealed class InfraFixture : IAsyncLifetime
         MailpitApi = new Uri($"http://{_mailpit.Hostname}:{_mailpit.GetMappedPublicPort(8025)}/");
 
         var admin = new NpgsqlConnectionStringBuilder(_postgres.GetConnectionString());
+        MigratorConnectionString =
+            new NpgsqlConnectionStringBuilder(admin.ConnectionString) { Username = "app_migrator", Password = MigratorPassword }.ConnectionString;
         MigrationRunner.Run(
-            new NpgsqlConnectionStringBuilder(admin.ConnectionString) { Username = "app_migrator", Password = MigratorPassword }.ConnectionString,
+            MigratorConnectionString,
             Path.Combine(repoRoot, "db", "migrations"),
             _ => { });
         ApiConnectionString =
             new NpgsqlConnectionStringBuilder(admin.ConnectionString) { Username = "app_api", Password = ApiPassword }.ConnectionString;
         RedisConnectionString = _redis.GetConnectionString();
+        // Two provinces and a few communes for /meta and claimedWardCode (codes 90, 91, 90001...).
+        await UnitImporter.ImportFileAsync(MigratorConnectionString,
+            Path.Combine(repoRoot, "db", "seed", "administrative_units", "sample.csv"), _ => { }, CancellationToken.None);
 
         await InitGarageAsync();
         S3Endpoint = $"http://{_garage.Hostname}:{_garage.GetMappedPublicPort(3900)}";

@@ -25,7 +25,7 @@ public sealed class PostgresFixture : IAsyncLifetime
         _image = new ImageFromDockerfileBuilder()
             .WithDockerfileDirectory(RepoRoot.Find())
             .WithDockerfile("infra/postgres/Dockerfile")
-            .WithName("troviec-postgres-test:latest")
+            .WithName("troviec-postgres-migrator-test:latest")
             .WithCleanUp(false)
             .Build();
         await _image.CreateAsync();
