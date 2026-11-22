@@ -42,6 +42,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/files/documents/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/register": {
         parameters: {
             query?: never;
@@ -1077,6 +1112,352 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/owner-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OwnerProfileEndpointsProfileResponse"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["OwnerProfileEndpointsProfileRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OwnerProfileEndpointsProfileResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/owner-documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OwnerProfileEndpointsDocumentItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": components["schemas"]["IFormFile"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OwnerProfileEndpointsCreatedDocument"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/owner-documents/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/moderation/owner-profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    pending?: boolean;
+                    page?: number | string;
+                    pageSize?: number | string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfProfileListItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/moderation/owner-profiles/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    userId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OwnerModerationEndpointsProfileDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/moderation/owner-profiles/{userId}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    userId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OwnerModerationEndpointsVerifyResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/moderation/owner-documents/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["OwnerModerationEndpointsReviewRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OwnerModerationEndpointsReviewResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/moderation/owner-documents/{id}/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["OwnerModerationEndpointsAccessRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OwnerModerationEndpointsAccessResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1232,8 +1613,92 @@ export interface components {
             code: string;
             name: string;
         };
+        OwnerModerationEndpointsAccessRequest: {
+            purpose: string;
+        };
+        OwnerModerationEndpointsAccessResponse: {
+            url: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        OwnerModerationEndpointsProfileDetail: {
+            /** Format: int64 */
+            userId: number | string;
+            fullName: string;
+            ownerType: string;
+            businessName: null | string;
+            taxCode: null | string;
+            /** Format: date-time */
+            verifiedUntil: null | string;
+            documents: components["schemas"]["OwnerProfileEndpointsDocumentItem"][];
+        };
+        OwnerModerationEndpointsProfileListItem: {
+            /** Format: int64 */
+            userId: number | string;
+            fullName: string;
+            ownerType: string;
+            businessName: null | string;
+            /** Format: date-time */
+            verifiedUntil: null | string;
+            /** Format: int32 */
+            pendingDocuments: number | string;
+            /** Format: int32 */
+            documents: number | string;
+        };
+        OwnerModerationEndpointsReviewRequest: {
+            decision: string;
+        };
+        OwnerModerationEndpointsReviewResponse: {
+            /** Format: int64 */
+            id: number | string;
+            status: string;
+        };
+        OwnerModerationEndpointsVerifyResponse: {
+            /** Format: date-time */
+            verifiedUntil: string;
+        };
+        OwnerProfileEndpointsCreatedDocument: {
+            /** Format: int64 */
+            id: number | string;
+        };
+        OwnerProfileEndpointsDocumentItem: {
+            /** Format: int64 */
+            id: number | string;
+            docType: string;
+            status: string;
+            mimeType: string;
+            /** Format: int32 */
+            byteSize: number | string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            reviewedAt: null | string;
+            /** Format: date-time */
+            erasedAt: null | string;
+        };
+        OwnerProfileEndpointsProfileRequest: {
+            ownerType: string;
+            businessName: null | string;
+            taxCode: null | string;
+        };
+        OwnerProfileEndpointsProfileResponse: {
+            ownerType: string;
+            businessName: null | string;
+            taxCode: null | string;
+            /** Format: date-time */
+            verifiedUntil: null | string;
+        };
         PagedOfMyScanItem: {
             items: components["schemas"]["ScanEndpointsMyScanItem"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int64 */
+            total: number | string;
+        };
+        PagedOfProfileListItem: {
+            items: components["schemas"]["OwnerModerationEndpointsProfileListItem"][];
             /** Format: int32 */
             page: number | string;
             /** Format: int32 */

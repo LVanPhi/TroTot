@@ -28,6 +28,11 @@ public sealed class ApiFactory(InfraFixture infra, string environment = "Develop
 
     public CapturingSmsSender Sms { get; } = new();
 
+    /// <summary>When set, replaces TimeProvider.System (e.g. to expire a 5-minute document link).</summary>
+    public MutableClock? Clock { get; init; }
+
+    public static string TestKey(int seed) => Convert.ToBase64String(Enumerable.Range(seed, 32).Select(i => (byte)i).ToArray());
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment(environment);
@@ -54,12 +59,17 @@ public sealed class ApiFactory(InfraFixture infra, string environment = "Develop
                 ["Smtp:From"] = "Tro & Viec Sach <no-reply@test.troviec>",
                 ["Cors:AllowedOrigins"] = SiteUrl,
                 ["Sms:Provider"] = "console",
+                ["Crypto:DocumentKeys"] = $"{{\"k1\":\"{TestKey(11)}\",\"k2\":\"{TestKey(12)}\"}}",
+                ["Crypto:ActiveDocumentKeyId"] = "k1",
+                ["Crypto:SignedUrlKey"] = TestKey(13),
             };
             foreach (var (key, value) in overrides ?? new Dictionary<string, string?>())
                 settings[key] = value;
             config.AddInMemoryCollection(settings);
         });
         builder.ConfigureServices(services => services.AddSingleton<IStartupFilter, TestHooks>());
+        if (Clock is not null)
+            builder.ConfigureTestServices(services => services.AddSingleton<TimeProvider>(Clock));
         if (CaptureSms)
             builder.ConfigureTestServices(services => services.AddSingleton<TroViec.Api.Infrastructure.Notifications.ISmsSender>(Sms));
     }
