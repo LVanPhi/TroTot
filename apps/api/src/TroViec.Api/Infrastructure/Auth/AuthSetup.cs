@@ -36,7 +36,11 @@ public static class AuthSetup
             {
                 options.MapInboundClaims = false;
                 options.TokenValidationParameters = tokens.ValidationParameters();
-                options.Events = new JwtBearerEvents { OnTokenValidated = RejectStaleVersionAsync };
+                options.Events = new JwtBearerEvents
+                {
+                    OnTokenValidated = RejectStaleVersionAsync,
+                    OnMessageReceived = ReadHubAccessToken,
+                };
             });
         services.AddAuthorization(options => options.AddPermissionPolicies());
 
@@ -52,6 +56,15 @@ public static class AuthSetup
     }
 
     public static string ClientIp(HttpContext http) => http.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+    /// <summary>WebSockets cannot send headers: SignalR puts the token in ?access_token=, read only on /hubs/* (docs/04-api.md).</summary>
+    private static Task ReadHubAccessToken(MessageReceivedContext context)
+    {
+        if (context.HttpContext.Request.Path.StartsWithSegments("/hubs")
+            && context.Request.Query.TryGetValue("access_token", out var token))
+            context.Token = token.ToString();
+        return Task.CompletedTask;
+    }
 
     /// <summary>Tokens issued before the last uver bump (password reset, lock, role change) stop working at once.</summary>
     private static async Task RejectStaleVersionAsync(TokenValidatedContext context)

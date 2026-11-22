@@ -83,6 +83,7 @@ app.MapMe();
 app.MapAdminUsers();
 app.MapScans();
 app.MapMeta();
+app.MapHub<TroViec.Api.Realtime.ScanHub>(TroViec.Api.Realtime.ScanHub.Path).AllowAnonymous();
 
 app.Run();
 

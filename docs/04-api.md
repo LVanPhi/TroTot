@@ -395,7 +395,7 @@ Không nằm dưới `/api/v1`, không lộ chi tiết lỗi ra ngoài; Caddy ch
 
 | Hub | Xác thực | Client gọi | Server gửi |
 |---|---|---|---|
-| `/hubs/scans` | Không bắt buộc | `Watch(scanId: string)` → tham gia nhóm `scan:{scanId}` (chỉ lượt `quick_check`); tối đa 10 nhóm/kết nối | `ScanUpdated {scanId, status}` |
+| `/hubs/scans` | Không bắt buộc | `Watch(scanId: string)` → tham gia nhóm `scan:{scanId}` (chỉ lượt `quick_check`; khác hoặc id sai → lỗi hub `scan.not_found`); tối đa 10 nhóm/kết nối (quá → `scan.watch_limit`) | `ScanUpdated {scanId, status}` |
 | `/hubs/moderation` | `listing.moderate` | — | `QueueChanged {pendingCount}`, `ListingUpdated {listingId, status, version}` |
 
 Access token cho WebSocket truyền qua query `access_token` (chuẩn SignalR); API chỉ đọc query này

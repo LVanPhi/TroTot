@@ -232,7 +232,7 @@ project; cập nhật bản vá bảo mật hằng tháng (Dependabot).
 | Lớp | Công nghệ |
 |---|---|
 | Backend | .NET 10 (LTS), ASP.NET Core Minimal API, Npgsql, Dapper, Pgvector (.NET, có handler cho Dapper), FluentValidation, StackExchange.Redis, AWSSDK.S3, MailKit, Microsoft.AspNetCore.Authentication.JwtBearer, Konscious.Security.Cryptography.Argon2, SkiaSharp¹ (+ SkiaSharp.NativeAssets.Linux.NoDependencies), DbUp (dbup-postgresql), Microsoft.AspNetCore.OpenApi + Scalar.AspNetCore |
-| Kiểm thử .NET | xUnit v3, Testcontainers (PostgreSQL, Redis), Shouldly² |
+| Kiểm thử .NET | xUnit v3, Testcontainers (PostgreSQL, Redis), Shouldly², Microsoft.AspNetCore.SignalR.Client (test hub) |
 | CSDL | PostgreSQL 18, PostGIS 3 (gói PGDG, đã thử 3.7.0), pgvector 0.8.x (đã thử 0.8.7) — image tự build từ `postgres:18` (đa kiến trúc). Không dùng `postgis/postgis:18-3.6` vì image này chỉ có bản amd64 |
 | Hàng đợi / cache | Redis 8 (hoặc Valkey 8) |
 | Lưu trữ tệp | Garage v2.x (S3 API) |
