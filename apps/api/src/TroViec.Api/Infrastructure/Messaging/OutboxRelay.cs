@@ -134,6 +134,7 @@ public static class ScanServicesSetup
         services.AddSingleton<OutboxRelay>();
         services.AddHostedService(sp => sp.GetRequiredService<OutboxRelay>());
         services.AddSingleton<Features.Listings.ListingTransitionService>();
+        services.AddSingleton<Realtime.ModerationNotifier>();
         services.AddSingleton<ScanCompletedHandler>();
         services.AddSingleton<ScanCompletedConsumer>();
         services.AddHostedService(sp => sp.GetRequiredService<ScanCompletedConsumer>());

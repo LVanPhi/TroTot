@@ -1915,6 +1915,245 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/moderation/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    page?: number | string;
+                    pageSize?: number | string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfQueueItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/moderation/listings/{listingId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    listingId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ListingModerationEndpointsReviewScreen"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/moderation/listings/{listingId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    listingId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DecisionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ListingModerationEndpointsDecisionResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/moderation/listings/{listingId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    listingId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DecisionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ListingModerationEndpointsDecisionResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/moderation/listings/{listingId}/hide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    listingId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DecisionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ListingModerationEndpointsDecisionResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/moderation/listings/{listingId}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    listingId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DecisionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ListingModerationEndpointsDecisionResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1956,6 +2195,11 @@ export interface components {
             scanId: string;
             status: string;
         };
+        DecisionRequest: {
+            /** Format: int32 */
+            version: number | string;
+            reason: null | string;
+        };
         GeoPoint: {
             /** Format: double */
             lat: number | string;
@@ -1995,6 +2239,15 @@ export interface components {
             removedListingCount: number | string;
             differentLocation: boolean;
             publicListing: null | components["schemas"]["GetScanPublicListing"];
+        };
+        GetScanListingScanResult: {
+            /** Format: uuid */
+            scanId: string;
+            status: string;
+            errorCode: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            assessment: null | components["schemas"]["GetScanAssessment"];
         };
         GetScanPrice: {
             /** Format: int32 */
@@ -2059,6 +2312,50 @@ export interface components {
             location: components["schemas"]["GeoPoint"];
             room: null | components["schemas"]["RoomInput"];
             job: null | components["schemas"]["JobInput"];
+        };
+        ListingModerationEndpointsDecisionResponse: {
+            status: string;
+            /** Format: int32 */
+            version: number | string;
+        };
+        ListingModerationEndpointsPoster: {
+            /** Format: int64 */
+            userId: number | string;
+            fullName: string;
+            phone: null | string;
+            /** Format: date-time */
+            memberSince: string;
+            ownerProfile: null | components["schemas"]["OwnerProfileEndpointsProfileResponse"];
+            documents: components["schemas"]["OwnerProfileEndpointsDocumentItem"][];
+        };
+        ListingModerationEndpointsQueueItem: {
+            /** Format: uuid */
+            listingId: string;
+            title: string;
+            listingType: string;
+            /** Format: int32 */
+            score: null | number | string;
+            riskLevel: null | string;
+            /** Format: int32 */
+            flagCount: number | string;
+            /** Format: date-time */
+            queuedAt: string;
+        };
+        ListingModerationEndpointsReport: {
+            /** Format: int64 */
+            id: number | string;
+            category: string;
+            description: null | string;
+            status: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        ListingModerationEndpointsReviewScreen: {
+            listing: components["schemas"]["ListingReadEndpointsDetail"];
+            screening: null | components["schemas"]["GetScanListingScanResult"];
+            history: components["schemas"]["ListingReadEndpointsHistoryItem"][];
+            reports: components["schemas"]["ListingModerationEndpointsReport"][];
+            poster: components["schemas"]["ListingModerationEndpointsPoster"];
         };
         ListingReadEndpointsAmenity: {
             code: string;
@@ -2297,6 +2594,15 @@ export interface components {
         };
         PagedOfProfileListItem: {
             items: components["schemas"]["OwnerModerationEndpointsProfileListItem"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int64 */
+            total: number | string;
+        };
+        PagedOfQueueItem: {
+            items: components["schemas"]["ListingModerationEndpointsQueueItem"][];
             /** Format: int32 */
             page: number | string;
             /** Format: int32 */
