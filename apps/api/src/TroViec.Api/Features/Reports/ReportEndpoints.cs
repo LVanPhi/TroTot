@@ -164,7 +164,12 @@ public static class ReportEndpoints
                 ListingStatus.Hidden, moderator, note, rules: new TransitionRules(ModeratorAction: true), ct: ct);
         }
         await tx.CommitAsync(ct);
-        if (request.HideListing) await notifier.ListingUpdatedAsync(report.ListingPublicId!.Value, "hidden", request.ListingVersion!.Value + 1, ct);
+        if (request.HideListing)
+        {
+            await notifier.ListingUpdatedAsync(report.ListingPublicId!.Value, "hidden", request.ListingVersion!.Value + 1, ct);
+            await http.RequestServices.GetRequiredService<Infrastructure.Notifications.ListingMailer>()
+                .NotifyAsync(report.ListingPublicId.Value, Infrastructure.Notifications.ListingNotice.Hidden, note, ct);
+        }
         return Results.Ok(new ResolveResponse(id, "confirmed"));
     }
 

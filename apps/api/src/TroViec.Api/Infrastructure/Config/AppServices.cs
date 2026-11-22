@@ -9,6 +9,7 @@ public static class AppServices
     {
         services.Configure<SmtpOptions>(configuration.GetSection("Smtp"));
         services.AddSingleton<IEmailSender, SmtpEmailSender>();
+        services.AddSingleton<ListingMailer>();
         return services;
     }
 

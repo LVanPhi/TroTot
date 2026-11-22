@@ -148,6 +148,8 @@ public static class AppealEndpoints
         await tx.CommitAsync(ct);
         outbox.Notify();
         if (version != appeal.Version) await notifier.ListingUpdatedAsync(appeal.ListingPublicId, listingStatus, version, ct);
+        await http.RequestServices.GetRequiredService<Infrastructure.Notifications.ListingMailer>().NotifyAsync(appeal.ListingPublicId,
+            accept ? Infrastructure.Notifications.ListingNotice.AppealAccepted : Infrastructure.Notifications.ListingNotice.AppealRejected, note, ct);
         return Results.Ok(new Decision(id, accept ? "accepted" : "rejected", listingStatus, version));
     }
 
