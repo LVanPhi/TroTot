@@ -1,0 +1,137 @@
+# Nightly OWASP ZAP baseline on the full Docker stack (docs/07-security.md, Kiểm thử bảo mật). The project has no
+# staging: the runner brings up postgres/redis/garage/mailpit, migrates, starts api and web, then scans both.
+# High-risk alerts fail the run; the HTML/JSON reports are kept as artifacts.
+name: nightly
+
+on:
+  schedule:
+    - cron: "30 20 * * *"   # 03:30 Vietnam time, after the maintenance job
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: "10.0.x"
+  DOTNET_NOLOGO: "1"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  NEXT_TELEMETRY_DISABLED: "1"
+  # Throwaway secrets for this run only.
+  POSTGRES_PASSWORD: zap-superuser
+  APP_MIGRATOR_PASSWORD: zap-migrator
+  APP_API_PASSWORD: zap-api
+  APP_WORKER_PASSWORD: zap-worker
+  APP_MAINTENANCE_PASSWORD: zap-maintenance
+  APP_REPORTING_PASSWORD: zap-reporting
+  APP_RESEARCH_PASSWORD: zap-research
+  ASPNETCORE_ENVIRONMENT: Development
+  ConnectionStrings__Migrator: Host=localhost;Port=5432;Database=troviec;Username=app_migrator;Password=zap-migrator
+  ConnectionStrings__Main: Host=localhost;Port=5432;Database=troviec;Username=app_api;Password=zap-api
+  ConnectionStrings__Redis: localhost:6379
+  S3__Endpoint: http://localhost:3900
+  S3__Region: garage
+  S3__PublicMediaBaseUrl: http://listing-images.web.garage.localhost:3902
+  Jwt__Issuer: http://localhost:8080
+  Jwt__Audience: http://localhost:8080
+  Auth__StudentEmailDomains: sv.example.edu.vn
+  Crypto__ActiveDocumentKeyId: k1
+  Smtp__Host: localhost
+  Smtp__Port: "1025"
+  Smtp__From: "Tro & Viec Sach <no-reply@example.com>"
+  Sms__Provider: console
+  App__SiteUrl: http://localhost:3000
+  Cors__AllowedOrigins: http://localhost:3000
+  Campuses__Json: '[{"code":"HN","name":"Cơ sở Hà Nội","lat":21.0537,"lng":105.7353}]'
+  NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+  NEXT_PUBLIC_SITE_URL: http://localhost:3000
+  NEXT_PUBLIC_IMAGE_ORIGINS: http://listing-images.web.garage.localhost:3902
+  API_INTERNAL_URL: http://localhost:8080
+
+jobs:
+  zap-baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          package_json_file: apps/web/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+
+      - name: Random keys for this run
+        run: |
+          key() { openssl rand -base64 32; }
+          {
+            echo "GARAGE_RPC_SECRET=$(openssl rand -hex 32)"
+            echo "Jwt__SigningKey=$(key)"
+            echo "Crypto__IdentifierHmacKey=$(key)"
+            echo "Crypto__SignedUrlKey=$(key)"
+            echo "Crypto__DocumentKeys={\"k1\":\"$(key)\"}"
+          } >> "$GITHUB_ENV"
+
+      - name: Start postgres, redis, garage, mailpit
+        run: |
+          env | grep -E '^(POSTGRES_PASSWORD|APP_.*_PASSWORD|GARAGE_RPC_SECRET)=' > .env
+          docker compose -f infra/docker-compose.yml --env-file .env up -d --build --wait
+          bash infra/garage/init.sh | tee garage-keys.txt
+          grep -E '^S3__(AccessKey|SecretKey)=' garage-keys.txt >> "$GITHUB_ENV"
+
+      - name: Migrate
+        run: dotnet run --project apps/api/src/TroViec.Migrator -- migrate
+
+      - name: Start api
+        run: |
+          dotnet build apps/api/src/TroViec.Api -c Release
+          nohup dotnet run --project apps/api/src/TroViec.Api -c Release --no-build --no-launch-profile --urls http://localhost:8080 > api.log 2>&1 &
+          for _ in $(seq 1 60); do curl -fsS http://localhost:8080/health/ready -o /dev/null && exit 0; sleep 2; done
+          cat api.log; exit 1
+
+      - name: Build and start web
+        working-directory: apps/web
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+          nohup pnpm start -p 3000 > ../../web.log 2>&1 &
+          for _ in $(seq 1 60); do curl -fsS http://localhost:3000/ -o /dev/null && exit 0; sleep 2; done
+          cat ../../web.log; exit 1
+
+      - name: ZAP baseline (web and api)
+        run: |
+          mkdir -p zap && chmod 777 zap
+          for target in web:http://localhost:3000/ api:http://localhost:8080/api/v1/meta/criteria; do
+            name=${target%%:*}; url=${target#*:}
+            docker run --rm --network host -v "$PWD/zap:/zap/wrk:rw" ghcr.io/zaproxy/zaproxy:stable \
+              zap-baseline.py -t "$url" -J "$name.json" -r "$name.html" -I
+          done
+
+      - name: Fail on High alerts
+        run: |
+          python3 - <<'PY'
+          import json, sys
+          high = []
+          for name in ("web", "api"):
+              report = json.load(open(f"zap/{name}.json"))
+              for site in report.get("site", []):
+                  for alert in site.get("alerts", []):
+                      if alert.get("riskcode") == "3":
+                          high.append(f"{name}: {alert.get('name')} ({alert.get('pluginid')})")
+          print("\n".join(high) or "No High alerts")
+          sys.exit(1 if high else 0)
+          PY
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: zap-reports
+          path: |
+            zap/
+            api.log
+            web.log
+          retention-days: 14

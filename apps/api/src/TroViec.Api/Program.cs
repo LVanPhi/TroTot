@@ -29,6 +29,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Structured JSON logs with traceId; never log request URLs/headers (SignalR access_token is in the query).
 builder.Logging.ClearProviders();
+// Request lines carry the query string (SignalR puts access_token there): keep the hosting request log at Warning
+// whatever appsettings say (docs/07-security.md, Nhật ký và giám sát).
+builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics", LogLevel.Warning);
+builder.Logging.AddFilter("Microsoft.AspNetCore.Routing", LogLevel.Warning);
 builder.Logging.AddJsonConsole(options =>
 {
     options.IncludeScopes = true;
@@ -78,6 +82,8 @@ app.UseForwardedHeaders();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseCors();
+app.UseRouting();
+app.UseRequestLimits();
 app.UseAuthentication();
 app.UseRateLimiter();
 app.UseAuthorization();

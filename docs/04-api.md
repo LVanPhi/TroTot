@@ -103,6 +103,7 @@ Lỗi kiểm tra dữ liệu dùng `code = "validation.failed"`, `status = 400`,
 | `admin.cannot_remove_own_admin` | 409 | Tự thu hồi vai trò admin | — |
 | `admin.cannot_lock_self` | 409 | Tự khóa tài khoản của mình | — |
 | `rate_limited` | 429 | Vượt hạn mức chung | Thao tác quá nhanh |
+| `request.too_large` | 413 | Body vượt giới hạn của endpoint (JSON 1 MB) | Dữ liệu gửi lên quá lớn |
 | `system.retry_later` | 503 | Deadlock, CSDL bận | Thử lại sau giây lát |
 
 ## Xác thực — `/auth`
