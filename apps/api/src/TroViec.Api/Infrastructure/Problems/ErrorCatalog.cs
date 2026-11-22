@@ -67,6 +67,8 @@ public static class ErrorCatalog
         ["document.token_invalid"] = new(403, "Link đã hết hạn"),
         ["document.erased"] = new(410, "Tệp đã bị xóa"),
         ["model.activation_conflict"] = new(409, "Đã có phiên bản khác đang chạy"),
+        ["model.not_implemented"] = new(409, "Worker chưa có cài đặt cho phiên bản này"),
+        ["criteria.code_taken"] = new(409, "Mã tiêu chí đã tồn tại"),
         ["admin.cannot_remove_own_admin"] = new(409, "Không thể tự thu hồi vai trò quản trị"),
         ["admin.cannot_lock_self"] = new(409, "Không thể tự khóa tài khoản của mình"),
         ["rate_limited"] = new(429, "Thao tác quá nhanh"),

@@ -978,6 +978,299 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/criteria": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminCatalogCriterion"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdminCatalogCriterionCreate"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminCatalogCriterion"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/criteria/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdminCatalogCriterionUpdate"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminCatalogCriterion"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/model-versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminCatalogModelVersion"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/model-versions/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminCatalogModelVersion"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    from?: string;
+                    to?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminCatalogStats"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/audit/transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    actorId?: number | string;
+                    listingId?: string;
+                    from?: string;
+                    to?: string;
+                    page?: number | string;
+                    pageSize?: number | string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfTransitionLog"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/audit/document-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    viewerId?: number | string;
+                    documentId?: number | string;
+                    from?: string;
+                    to?: string;
+                    page?: number | string;
+                    pageSize?: number | string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfDocumentAccessLog"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/scans": {
         parameters: {
             query?: never;
@@ -2895,6 +3188,115 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AdminCatalogCriterion: {
+            /** Format: int32 */
+            id: number | string;
+            code: string;
+            name: string;
+            guidance: string;
+            scope: string;
+            legalBasis: null | string;
+            isActive: boolean;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        AdminCatalogCriterionCreate: {
+            code: string;
+            name: string;
+            guidance: string;
+            scope: string;
+            legalBasis: null | string;
+        };
+        AdminCatalogCriterionUpdate: {
+            name: string;
+            guidance: string;
+            scope: string;
+            legalBasis: null | string;
+            isActive: boolean;
+        };
+        AdminCatalogDailyModeration: {
+            /** Format: date */
+            day: string;
+            /** Format: int64 */
+            decisionCount: number | string;
+            /** Format: double */
+            medianMinutes: null | number | string;
+        };
+        AdminCatalogDailyScans: {
+            /** Format: date */
+            day: string;
+            source: string;
+            /** Format: int64 */
+            scanCount: number | string;
+            /** Format: int64 */
+            highCount: number | string;
+            /** Format: int64 */
+            cautionCount: number | string;
+            /** Format: int64 */
+            lowCount: number | string;
+            /** Format: int64 */
+            failedCount: number | string;
+            /** Format: double */
+            p95Seconds: null | number | string;
+        };
+        AdminCatalogDocumentAccessLog: {
+            /** Format: int64 */
+            id: number | string;
+            /** Format: int64 */
+            documentId: number | string;
+            /** Format: int64 */
+            ownerId: number | string;
+            /** Format: int64 */
+            viewerId: number | string;
+            viewerName: string;
+            purpose: string;
+            /** Format: date-time */
+            accessedAt: string;
+        };
+        AdminCatalogModelVersion: {
+            /** Format: int32 */
+            id: number | string;
+            component: string;
+            name: string;
+            version: string;
+            isActive: boolean;
+            /** Format: date-time */
+            activatedAt: null | string;
+            thresholds: null | components["schemas"]["AdminCatalogThresholds"];
+        };
+        AdminCatalogRiskBucket: {
+            source: string;
+            /** Format: int32 */
+            scoreBucket: number | string;
+            /** Format: int64 */
+            assessmentCount: number | string;
+        };
+        AdminCatalogStats: {
+            scans: components["schemas"]["AdminCatalogDailyScans"][];
+            moderation: components["schemas"]["AdminCatalogDailyModeration"][];
+            risk: components["schemas"]["AdminCatalogRiskBucket"][];
+        };
+        AdminCatalogThresholds: {
+            /** Format: int32 */
+            caution: number | string;
+            /** Format: int32 */
+            high: number | string;
+        };
+        AdminCatalogTransitionLog: {
+            /** Format: int64 */
+            id: number | string;
+            /** Format: uuid */
+            listingId: string;
+            listingTitle: string;
+            fromStatus: null | string;
+            toStatus: string;
+            reason: null | string;
+            /** Format: int64 */
+            actorId: number | string;
+            actorName: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
         AdminUsersPhoneRequest: {
             phone: string;
         };
@@ -3398,6 +3800,15 @@ export interface components {
             /** Format: int64 */
             total: number | string;
         };
+        PagedOfDocumentAccessLog: {
+            items: components["schemas"]["AdminCatalogDocumentAccessLog"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int64 */
+            total: number | string;
+        };
         PagedOfItem: {
             items: components["schemas"]["SearchEndpointsItem"][];
             /** Format: int32 */
@@ -3445,6 +3856,15 @@ export interface components {
         };
         PagedOfReportListItem: {
             items: components["schemas"]["ReportEndpointsReportListItem"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int64 */
+            total: number | string;
+        };
+        PagedOfTransitionLog: {
+            items: components["schemas"]["AdminCatalogTransitionLog"][];
             /** Format: int32 */
             page: number | string;
             /** Format: int32 */

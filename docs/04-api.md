@@ -98,6 +98,8 @@ Lỗi kiểm tra dữ liệu dùng `code = "validation.failed"`, `status = 400`,
 | `document.token_invalid` | 403 | Link xem giấy tờ sai / quá 5 phút | Link đã hết hạn |
 | `document.erased` | 410 | Tệp đã bị xóa | — |
 | `model.activation_conflict` | 409 | Hai phiên bản cùng active | — |
+| `model.not_implemented` | 409 | Kích hoạt phiên bản bộ gộp mà worker chưa có tệp cấu hình | Worker chưa có cài đặt cho phiên bản này |
+| `criteria.code_taken` | 409 | Mã tiêu chí đã tồn tại | Mã tiêu chí đã tồn tại |
 | `admin.cannot_remove_own_admin` | 409 | Tự thu hồi vai trò admin | — |
 | `admin.cannot_lock_self` | 409 | Tự khóa tài khoản của mình | — |
 | `rate_limited` | 429 | Vượt hạn mức chung | Thao tác quá nhanh |
@@ -369,7 +371,7 @@ người đăng tin / chủ hồ sơ) → `403 moderation.conflict_of_interest` 
 | POST | `/admin/users/{id}/phone` | `user.manage` | `{phone}` → `204`; xác thực số thủ công khi chưa có nhà cung cấp SMS (US-104 AC6): đặt `phone_e164` + `phone_verified_at`; số đã thuộc tài khoản khác → `auth.phone_taken`; ghi log có cấu trúc `{adminId, userId}` (không log số) |
 | GET / POST | `/admin/criteria` | `criteria.manage` | Danh sách / thêm tiêu chí |
 | PUT | `/admin/criteria/{id}` | `criteria.manage` | `{name, guidance, scope, legalBasis, isActive}` (không đổi `code`) |
-| GET | `/admin/model-versions` | `model.manage` | Theo thành phần, đánh dấu phiên bản đang chạy |
+| GET | `/admin/model-versions` | `model.manage` | Theo thành phần, đánh dấu phiên bản đang chạy; bộ gộp kèm `thresholds {caution, high}` đọc từ tệp cấu hình worker (nhúng lúc build API) |
 | POST | `/admin/model-versions/{id}/activate` | `model.manage` | Tắt phiên bản đang chạy cùng thành phần rồi bật phiên bản này, một transaction |
 | GET | `/admin/stats?from=&to=` | `stats.view` | Từ `reporting.*` |
 | GET | `/admin/audit/transitions` | `audit.view_all` | Lọc `actorId`, `listingId`, `from`, `to` |

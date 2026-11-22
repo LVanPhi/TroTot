@@ -9,6 +9,8 @@ ARG PROJECT
 ARG TARGETARCH
 WORKDIR /src
 COPY apps/api/ ./
+# Aggregator configs embedded by TroViec.Api (path ../../../worker from src/TroViec.Api).
+COPY apps/worker/models/aggregator/ /worker/models/aggregator/
 RUN dotnet publish "src/${PROJECT}/${PROJECT}.csproj" -c Release -a "$TARGETARCH" -o /out /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS api
