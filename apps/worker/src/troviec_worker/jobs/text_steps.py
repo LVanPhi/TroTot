@@ -33,6 +33,9 @@ class TextAnalysis:
     injections: list[injection.InjectionFinding] = field(default_factory=list)
     identifier_count: int = 0
     ocr_texts: list[str | None] = field(default_factory=list)
+    # Kept in memory for steps 8-9 only, never stored or logged: unmasked text (price) and loaded images.
+    full_text: str = ""
+    images: list[tuple[int, bytes]] = field(default_factory=list)
 
 
 def mark_processing(pool: ConnectionPool, scan_id: int) -> None:
@@ -55,10 +58,12 @@ def analyse(pool: ConnectionPool, scan: dict, deps: PipelineDeps, budget: Budget
 
     # Step 2: OCR only for quick checks (listing photos are rooms, not screenshots).
     ocr_texts: list[str | None] = []
+    loaded: list[tuple[int, bytes]] = []
     if scan["source"] == "quick_check" and images:
         blobs = [_load(deps, image["object_key"], scan_id) for image in images]
         ocr_texts = ocr_images([b for b in blobs if b is not None], budget, deps.ocr_engine)
         ocr_texts = _align(blobs, ocr_texts)
+        loaded = [(img["image_no"], b) for img, b in zip(images, blobs, strict=True) if b is not None]
         _save_ocr(pool, scan_id, images, ocr_texts)
 
     text = full_text(input_text, ocr_texts)  # step 3
@@ -76,7 +81,7 @@ def analyse(pool: ConnectionPool, scan: dict, deps: PipelineDeps, budget: Budget
             "injections": len(findings),
         },
     )
-    return TextAnalysis(masked, findings, len(found), ocr_texts)
+    return TextAnalysis(masked, findings, len(found), ocr_texts, text, loaded)
 
 
 def _load(deps: PipelineDeps, key: str, scan_id: int) -> bytes | None:

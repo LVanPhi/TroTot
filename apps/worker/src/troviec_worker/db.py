@@ -12,7 +12,7 @@ def make_pool(database_url: str, max_size: int = 4) -> ConnectionPool:
         database_url,
         min_size=1,
         max_size=max_size,
-        kwargs={"row_factory": dict_row, "options": "-c search_path=app"},
+        kwargs={"row_factory": dict_row, "options": "-c search_path=app,public"},
         open=False,
     )
     pool.open(wait=True, timeout=30)

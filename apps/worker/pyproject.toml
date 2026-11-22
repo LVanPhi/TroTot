@@ -8,6 +8,8 @@ dependencies = [
     "boto3>=1.44.9",
     "fastapi>=0.165.0",
     "httpx>=0.28.1",
+    "imagehash>=4.3.2",
+    "numpy>=2.3",
     "pillow>=13.0.0",
     "psycopg[binary,pool]>=3.3.9",
     "pydantic>=2.14.4",
@@ -21,6 +23,7 @@ dependencies = [
 [project.optional-dependencies]
 # Heavy ML stack, installed in the Docker image; local dev adds it with `uv sync --extra ml` when needed (T2.x).
 ml = [
+    "open-clip-torch>=3.2",
     "torch>=2.9",
     "underthesea>=6.8",
 ]
@@ -63,4 +66,6 @@ ignore = ["S101"]  # assert is fine in tests
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+# Tests marked `ml` load real models (torch, CLIP weights); they run in the CI job `worker-ml`.
+addopts = "-q -m 'not ml'"
+markers = ["ml: needs the ml extra and model weights (uv sync --extra ml; pytest -m ml)"]

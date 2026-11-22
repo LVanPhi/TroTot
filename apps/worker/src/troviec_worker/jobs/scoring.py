@@ -12,6 +12,7 @@ import redis
 from psycopg_pool import ConnectionPool
 
 from troviec_worker.config import Settings
+from troviec_worker.jobs.signal_steps import OtherSignals
 from troviec_worker.llm import prompt
 from troviec_worker.llm.base import LlmClient
 from troviec_worker.llm.fake import FakeLlmClient
@@ -166,19 +167,36 @@ def write_result(
     llm_model_id: int | None,
     text: TextOutcome,
     result: AggregateResult,
+    other: OtherSignals | None = None,
 ) -> None:
     """Step 12: one transaction; an existing assessment for this aggregator means already scored
     (redelivery)."""
+    other = other or OtherSignals()
+    price_ = other.price
     with pool.connection() as conn, conn.transaction():
         row = conn.execute(
             """
-            INSERT INTO app.assessments (scan_id, aggregator_model_id, llm_model_id, score,
-            risk_level, text_signal)
-            VALUES (%s, %s, %s, %s, %s::app.risk_level, %s)
+            INSERT INTO app.assessments (scan_id, aggregator_model_id, llm_model_id, score, risk_level,
+                text_signal, image_signal, price_signal, community_signal,
+                price_median_vnd, price_sample_size, price_vnd)
+            VALUES (%s, %s, %s, %s, %s::app.risk_level, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (scan_id, aggregator_model_id) DO NOTHING
             RETURNING id
             """,
-            (scan_id, aggregator_id, llm_model_id, result.score, result.risk_level, text.signal),
+            (
+                scan_id,
+                aggregator_id,
+                llm_model_id,
+                result.score,
+                result.risk_level,
+                text.signal,
+                other.image,
+                price_.signal if price_ else None,
+                other.community,
+                price_.median_vnd if price_ else None,
+                price_.sample_size if price_ else None,
+                price_.rent_vnd if price_ else None,
+            ),
         ).fetchone()
         if row is not None:
             for code, evidence in text.flags:
@@ -188,6 +206,15 @@ def write_result(
                     SELECT %s, id, %s FROM app.criteria WHERE code = %s
                     """,
                     (row["id"], evidence[:300], code),
+                )
+            for m in other.matches:
+                conn.execute(
+                    """
+                    INSERT INTO app.assessment_image_matches
+                        (assessment_id, listing_image_id, source_image_no, hamming_distance, clip_similarity)
+                    VALUES (%s, %s, %s, %s, %s)
+                    """,
+                    (row["id"], m.listing_image_id, m.source_image_no, m.hamming_distance, m.clip_similarity),
                 )
         _complete(conn, scan_id)
 

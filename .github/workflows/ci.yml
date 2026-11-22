@@ -107,6 +107,27 @@ jobs:
       - name: pip-audit
         run: uv run pip-audit --skip-editable
 
+  worker-ml:
+    # Tests marked `ml` run real models (CPU torch + CLIP ViT-B-32 weights, cached between runs).
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/worker
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: apps/worker/uv.lock
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/huggingface
+          key: hf-clip-vit-b-32-laion2b_s34b_b79k
+      - run: uv sync --frozen --extra ml
+      - name: pytest -m ml
+        run: uv run pytest -m ml
+
   web:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
