@@ -51,6 +51,7 @@ chạy bằng đúng role tương ứng:
 | D24 | `assessments.price_vnd` khác NULL khi `price_signal` NULL, hoặc ngoài 100.000–100.000.000 | app_worker | Lỗi CHECK `ck_assessments_price_vnd` |
 | D25 | Đọc tiện nghi `private_bathroom` sau 0003 | app_api | `is_active = false` |
 | D26 | Ẩn danh hóa chỉ NULL `email`, `phone_e164` mà giữ `email_verified_at` / `phone_verified_at` | app_api | Lỗi CHECK `ck_users_email_verified_has_email` / `ck_users_phone_verified_has_phone` (vì vậy US-106 NULL cả bốn cột) |
+| D27–D42 | Lược đồ thuê trọ `0005` (EXCLUDE hợp đồng chồng ngày, các bên, tổng hóa đơn, dòng khóa sau phát hành, thanh toán chỉ thêm + dòng đảo, quyền job đêm, seed vai trò) | app_api, app_maintenance | `TroViec.Migrator.Tests/RentalSchemaTests.cs`; danh sách ca ở [12-rental.md](12-rental.md#kiểm-thử) |
 
 ## Kiểm thử API
 

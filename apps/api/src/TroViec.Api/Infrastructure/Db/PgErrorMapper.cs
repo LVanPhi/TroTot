@@ -19,6 +19,14 @@ public static class PgErrorMapper
         ["uq_owner_documents_sha256"] = "document.duplicate",
         ["uq_model_versions_one_active"] = "model.activation_conflict",
         ["uq_criteria_code"] = "criteria.code_taken",
+        ["uq_rooms_property_code"] = "rental.room_code_taken",
+        ["uq_invoices_lease_period"] = "rental.invoice_period_exists",
+        ["uq_payments_reverses_payment_id"] = "rental.payment_already_reversed",
+    };
+
+    private static readonly Dictionary<string, string> ExclusionViolations = new(StringComparer.Ordinal)
+    {
+        ["ex_leases_room_period"] = "rental.room_already_leased",
     };
 
     /// <summary>True for serialization failures and deadlocks, which callers may retry once.</summary>
@@ -36,6 +44,9 @@ public static class PgErrorMapper
             case PostgresErrorCodes.UniqueViolation
                 when ex.ConstraintName is { } name && UniqueViolations.TryGetValue(name, out var code):
                 return new ProblemException(code, inner: ex);
+            case PostgresErrorCodes.ExclusionViolation
+                when ex.ConstraintName is { } exclusion && ExclusionViolations.TryGetValue(exclusion, out var exclusionCode):
+                return new ProblemException(exclusionCode, inner: ex);
             case PostgresErrorCodes.ForeignKeyViolation:
                 return new ProblemException("validation.reference_not_found", inner: ex);
             case PostgresErrorCodes.CheckViolation:

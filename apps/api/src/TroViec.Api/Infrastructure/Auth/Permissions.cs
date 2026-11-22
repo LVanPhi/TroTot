@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace TroViec.Api.Infrastructure.Auth;
 
 /// <summary>
-/// Permission codes (app.permissions, seeded by 0002). Each code is also an authorization policy name that requires
+/// Permission codes (app.permissions, seeded by 0002 and 0005). Each code is also an authorization policy name that requires
 /// a matching "perm" claim, so endpoints say RequireAuthorization(Permissions.UserManage). The API checks
 /// permissions, never role names (docs/01-requirements.md, Ma trận phân quyền).
 /// </summary>
@@ -27,6 +27,10 @@ public static class Permissions
     public const string ModelManage = "model.manage";
     public const string UserManage = "user.manage";
     public const string StatsView = "stats.view";
+
+    // Quản lý trọ (0005, docs/12-rental.md).
+    public const string RentalManage = "rental.manage";
+    public const string RentalTenant = "rental.tenant";
 
     public static IReadOnlyList<string> All { get; } = typeof(Permissions)
         .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)

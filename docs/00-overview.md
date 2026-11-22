@@ -115,4 +115,4 @@ Dùng đúng tên trong cột "Code" cho bảng, cột, class, endpoint. Giao di
 | [10-implementation-plan.md](10-implementation-plan.md) | Các task theo thứ tự, kèm prompt cho AI agent và tiêu chí xong |
 | [11-product-vision.md](11-product-vision.md) | Tầm nhìn sau đồ án: nền tảng thuê trọ, dự án này là gói Enterprise; không thuộc phạm vi chấm |
 | [12-rental.md](12-rental.md) | Đặc tả Giai đoạn 1 sau đồ án: nhà, phòng, hợp đồng, hóa đơn, VietQR (story, CSDL, API, giao diện, task T6.x) |
-| [../db/migrations/](../db/migrations/) | Lược đồ CSDL thật (32 bảng, migration 0001–0003), đã chạy thử trên PostgreSQL 18 |
+| [../db/migrations/](../db/migrations/) | Lược đồ CSDL thật (32 bảng của đồ án ở 0001–0004; 0005 thêm 10 bảng thuê trọ → 42), đã chạy thử trên PostgreSQL 18 |

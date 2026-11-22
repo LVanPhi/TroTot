@@ -11,6 +11,10 @@ public sealed class PgErrorMapperTests
     [InlineData("23505", "uq_users_email", null, "auth.email_taken")]
     [InlineData("23505", "uq_users_phone_e164", null, "auth.phone_taken")]
     [InlineData("23505", "uq_appeals_listing_transition_id", null, "appeal.already_used")]
+    [InlineData("23505", "uq_invoices_lease_period", null, "rental.invoice_period_exists")]
+    [InlineData("23505", "uq_payments_reverses_payment_id", null, "rental.payment_already_reversed")]
+    [InlineData("23P01", "ex_leases_room_period", null, "rental.room_already_leased")]
+    [InlineData("P0001", null, "rental.payment_exceeds_total", "rental.payment_exceeds_total")]
     [InlineData("23503", "fk_listings_ward_code", null, "validation.reference_not_found")]
     [InlineData("23514", "ck_users_phone_format", null, "validation.constraint_violated")]
     [InlineData("P0001", null, "appeal.window_closed", "appeal.window_closed")]
@@ -21,6 +25,7 @@ public sealed class PgErrorMapperTests
 
     [Theory]
     [InlineData("23505", "uq_some_other_index", null)]
+    [InlineData("23P01", "ex_some_other_exclusion", null)]
     [InlineData("P0001", null, "free text from a trigger")]
     [InlineData("42P01", null, null)]
     public void Map_UnknownError_ReturnsNull(string sqlState, string? constraint, string? message) =>
