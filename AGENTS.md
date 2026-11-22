@@ -23,6 +23,7 @@ kèm tính năng **Kiểm tra tin** — AI chấm điểm rủi ro lừa đảo 
 | Docker, Caddy, CI/CD, biến môi trường | `docs/08-deployment.md` |
 | Test cần viết | `docs/09-testing.md` |
 | Task hiện tại và mục cần đọc | `docs/10-implementation-plan.md` |
+| Tầm nhìn sau đồ án; quản lý trọ (Giai đoạn 1, task T6.x) | `docs/11-product-vision.md`; `docs/12-rental.md` |
 
 Chỉ đọc các mục task yêu cầu; đừng nạp cả bộ tài liệu vào ngữ cảnh nếu không cần.
 
@@ -63,7 +64,8 @@ make test        # dotnet test + pytest + vitest
 8. SQL luôn tham số hóa; ghi rõ schema `app.`; enum truyền chuỗi và cast `@Status::app.listing_status`; tên cột sắp xếp lấy từ whitelist.
 9. Đổi `listings.status` **chỉ** qua `ListingTransitionService` (ghi `listing_transitions` cùng transaction, kiểm `version`).
    Ngoại lệ duy nhất: hai câu lệnh hàng loạt của job đêm ghi ở `docs/03-database.md` (mục Job đêm).
-10. Không UPDATE/DELETE bảng chỉ-thêm: `listing_transitions`, `assessments`, `assessment_flags`, `assessment_image_matches`, `document_access_logs`.
+10. Không UPDATE/DELETE bảng chỉ-thêm: `listing_transitions`, `assessments`, `assessment_flags`, `assessment_image_matches`, `document_access_logs`
+    (từ migration `0005`: thêm `payments`, xem `docs/12-rental.md`).
 
 **Bảo mật và riêng tư**
 11. Mọi endpoint khai báo `RequireAuthorization("<permission>")` hoặc `AllowAnonymous()` tường minh; riêng endpoint chỉ đụng

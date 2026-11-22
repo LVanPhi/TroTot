@@ -5,6 +5,9 @@ REST JSON dưới `https://{DOMAIN}/api/v1`, cộng hai hub SignalR. Tài liệu
 **Thứ tự ưu tiên khi lệch:** tài liệu này là hợp đồng → sửa code cho khớp, hoặc sửa tài liệu trong
 cùng PR và sinh lại client.
 
+Endpoint quản lý trọ (`/rental/*`, `/tenancy/*`, `/leases/*`, `/me/payout-account`, `/meta/banks`) và mã lỗi `rental.*`
+thuộc Giai đoạn 1 sau đồ án: [12-rental.md](12-rental.md#api).
+
 ## Quy ước chung
 
 | Chủ đề | Quy ước |

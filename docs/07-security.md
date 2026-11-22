@@ -110,6 +110,9 @@ Mỗi mã quyền là một policy cùng tên (`Infrastructure/Auth/Permissions.
 | Bản sao lưu | Mã hóa phía client trước khi đẩy ra nơi lưu trữ ngoài (WAL-G libsodium) | `WALG_LIBSODIUM_KEY` |
 | Ổ đĩa VPS | Mã hóa ổ đĩa nếu nhà cung cấp hỗ trợ | — |
 
+Từ Giai đoạn 1, số tài khoản nhận tiền của chủ trọ dùng cùng bộ khóa giấy tờ (AAD gắn chủ sở hữu hoặc hóa đơn) và HMAC như
+định danh — chi tiết ở [12-rental.md](12-rental.md#bảo-mật-và-riêng-tư).
+
 Xoay khóa giấy tờ: thêm `k2`, đổi khóa đang dùng sang `k2`; tệp cũ vẫn giải mã bằng `k1` theo `key_id`.
 **Không bao giờ** commit khóa; khóa sinh bằng `openssl rand -base64 32`.
 

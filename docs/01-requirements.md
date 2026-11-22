@@ -40,6 +40,9 @@ Một số endpoint chỉ cần **đăng nhập**, không cần quyền cụ th�
 chúng chỉ đụng tới dữ liệu của chính người gọi. Endpoint trên tin của mình cần `listing.create`
 **và** là chủ tin.
 
+Quyền `rental.manage`, `rental.tenant` và vai trò `renter` (người thuê không phải sinh viên) thuộc Giai đoạn 1 sau đồ án:
+[12-rental.md](12-rental.md#phân-quyền).
+
 **Tách nhiệm vụ (BR-19):** đăng ký tài khoản luôn gắn vai trò `student` hoặc `owner`, nên một cán bộ
 có thể đồng thời là người đăng tin. Người có quyền kiểm duyệt không được duyệt / từ chối / ẩn / khôi
 phục tin của chính mình, xác minh hồ sơ chủ của chính mình, hay xử lý báo cáo / kháng nghị về tin của
@@ -73,6 +76,8 @@ chính mình → `403 moderation.conflict_of_interest`.
 | BR-18 | Không tài khoản nào bị xóa cứng; yêu cầu xóa dữ liệu → ẩn danh hóa `users`, gỡ mọi tin, xóa tệp giấy tờ (US-106) | API |
 | BR-19 | Tách nhiệm vụ: cán bộ không xử lý tin, hồ sơ, báo cáo, kháng nghị liên quan tới chính mình | API |
 | BR-20 | Kết quả AI của lượt sàng lọc tin đăng (`source = listing`) chỉ cán bộ xem; người đăng không xem được điểm và dấu hiệu (tránh dò để lách). Endpoint `/scans*` chỉ phục vụ lượt Kiểm tra tin | API |
+
+BR-21…BR-34 (hợp đồng, hóa đơn, tài khoản nhận tiền) và user story E10–E12 nằm ở [12-rental.md](12-rental.md).
 
 ## Vòng đời tin đăng
 

@@ -344,6 +344,6 @@ Ngưỡng chuyển sang hạ tầng trả phí:
 
 | Giai đoạn | Tài liệu |
 |---|---|
-| 1 | 00-overview.md (nguyên tắc 6, 7; phạm vi; thuật ngữ `lease`, `invoice`), 01-requirements.md (user story chủ trọ, người thuê), 03-database.md, 04-api.md, 06-frontend.md, 07-security.md (mã hóa số tài khoản, dữ liệu hợp đồng), 10-implementation-plan.md (T6.x) |
+| 1 | **Đã đặc tả** ở [12-rental.md](12-rental.md); 00 (nguyên tắc 6), 01, 02 (QRCoder), 03, 04, 06, 07, 10 (Giai đoạn 6) đã có tham chiếu. Còn lại khi làm T6.6: hồ sơ đánh giá tác động ở 07-security.md |
 | 2 | 05-ai-worker.md (stream `troviec:meter-ocr`), 08-deployment.md (bucket `rental-files`, `garage/init.sh`), 09-testing.md |
 | 3 | 02-architecture.md (ADR multi-tenant), 04-api.md (`/partner/v1`, mã lỗi), 07-security.md (bảng chỉ-thêm `audit_events`, API key) |
