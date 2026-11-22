@@ -21,7 +21,10 @@ COPY src ./src
 COPY models ./models
 RUN uv sync --frozen --no-dev --extra ml
 
-RUN useradd --system --uid 10001 worker
+RUN useradd --system --uid 10001 worker \n    # The compose file mounts a named volume on /models (model weights cache). A new named volume copies the
+    # ownership of the image directory, so the directory must exist and belong to the worker user here;
+    # otherwise Docker creates it as root and model downloads fail with PermissionError.
+ && mkdir -p /models \n && chown worker /models
 USER worker
 
 ENTRYPOINT ["python", "-m", "troviec_worker"]
