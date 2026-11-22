@@ -42,6 +42,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/listings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    status?: string;
+                    page?: number | string;
+                    pageSize?: number | string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfMyListing"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/files/documents/{token}": {
         parameters: {
             query?: never;
@@ -1263,6 +1302,260 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/listings/{listingId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    listingId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ListingReadEndpointsDetail"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    listingId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ListingUpdate"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["VersionResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/listings/{listingId}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    listingId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ListingReadEndpointsHistoryItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/listings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ListingInput"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CreatedListing"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/listings/{listingId}/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    listingId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": components["schemas"]["IFormFile"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CreatedImage"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/listings/{listingId}/images/{imageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    listingId: string;
+                    imageId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/listings/{listingId}/images/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    listingId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ImageOrderRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/moderation/owner-profiles": {
         parameters: {
             query?: never;
@@ -1481,10 +1774,29 @@ export interface components {
             createdAt: string;
             roles: string[];
         };
+        CreatedImage: {
+            /** Format: int64 */
+            imageId: number | string;
+            url: string;
+            /** Format: int32 */
+            sortOrder: number | string;
+        };
+        CreatedListing: {
+            /** Format: uuid */
+            listingId: string;
+            /** Format: int32 */
+            version: number | string;
+        };
         CreateScanResponse: {
             /** Format: uuid */
             scanId: string;
             status: string;
+        };
+        GeoPoint: {
+            /** Format: double */
+            lat: number | string;
+            /** Format: double */
+            lng: number | string;
         };
         GetScanAssessment: {
             /** Format: int32 */
@@ -1558,6 +1870,114 @@ export interface components {
         };
         /** Format: binary */
         IFormFile: string;
+        ImageOrderRequest: {
+            imageIds: (number | string)[];
+        };
+        JobInput: {
+            employerName: string;
+            /** Format: int32 */
+            payVnd: number | string;
+            payUnit: string;
+            /** Format: int16 */
+            hoursPerWeek: number | string;
+        };
+        ListingInput: {
+            listingType: string;
+            title: string;
+            description: string;
+            wardCode: string;
+            streetAddress: string;
+            location: components["schemas"]["GeoPoint"];
+            room: null | components["schemas"]["RoomInput"];
+            job: null | components["schemas"]["JobInput"];
+        };
+        ListingReadEndpointsAmenity: {
+            code: string;
+            name: string;
+        };
+        ListingReadEndpointsDetail: {
+            /** Format: uuid */
+            listingId: string;
+            listingType: string;
+            title: string;
+            description: string;
+            wardCode: string;
+            wardName: string;
+            streetAddress: string;
+            location: components["schemas"]["GeoPoint"];
+            room: null | components["schemas"]["ListingReadEndpointsRoom"];
+            job: null | components["schemas"]["ListingReadEndpointsJob"];
+            amenities: components["schemas"]["ListingReadEndpointsAmenity"][];
+            images: components["schemas"]["ListingReadEndpointsImage"][];
+            /** Format: date-time */
+            expiresAt: null | string;
+            status: null | string;
+            /** Format: int32 */
+            version: null | number | string;
+        };
+        ListingReadEndpointsHistoryItem: {
+            fromStatus: null | string;
+            toStatus: string;
+            reason: null | string;
+            actor: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        ListingReadEndpointsImage: {
+            /** Format: int64 */
+            imageId: number | string;
+            url: string;
+            /** Format: int32 */
+            width: number | string;
+            /** Format: int32 */
+            height: number | string;
+            /** Format: int32 */
+            sortOrder: number | string;
+        };
+        ListingReadEndpointsJob: {
+            employerName: string;
+            /** Format: int32 */
+            payVnd: number | string;
+            payUnit: string;
+            /** Format: int32 */
+            hoursPerWeek: number | string;
+        };
+        ListingReadEndpointsMyListing: {
+            /** Format: uuid */
+            listingId: string;
+            listingType: string;
+            title: string;
+            status: string;
+            /** Format: int32 */
+            version: number | string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: date-time */
+            expiresAt: null | string;
+            coverImageUrl: null | string;
+        };
+        ListingReadEndpointsRoom: {
+            /** Format: int32 */
+            monthlyRentVnd: number | string;
+            /** Format: int32 */
+            depositVnd: null | number | string;
+            /** Format: double */
+            areaM2: number | string;
+            isSelfContained: boolean;
+        };
+        ListingUpdate: {
+            listingType: string;
+            title: string;
+            description: string;
+            wardCode: string;
+            streetAddress: string;
+            location: components["schemas"]["GeoPoint"];
+            room: null | components["schemas"]["RoomInput"];
+            job: null | components["schemas"]["JobInput"];
+            /** Format: int32 */
+            version: number | string;
+            input?: components["schemas"]["ListingInput"];
+        };
         LoginRequest: {
             email: string;
             password: string;
@@ -1688,6 +2108,15 @@ export interface components {
             /** Format: date-time */
             verifiedUntil: null | string;
         };
+        PagedOfMyListing: {
+            items: components["schemas"]["ListingReadEndpointsMyListing"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int64 */
+            total: number | string;
+        };
         PagedOfMyScanItem: {
             items: components["schemas"]["ScanEndpointsMyScanItem"][];
             /** Format: int32 */
@@ -1742,6 +2171,16 @@ export interface components {
         ResendEmailRequest: {
             email: string;
         };
+        RoomInput: {
+            /** Format: int32 */
+            monthlyRentVnd: number | string;
+            /** Format: int32 */
+            depositVnd: null | number | string;
+            /** Format: double */
+            areaM2: number | string;
+            isSelfContained: boolean;
+            amenityCodes: null | string[];
+        };
         ScanEndpointsMyScanItem: {
             /** Format: uuid */
             scanId: string;
@@ -1778,6 +2217,10 @@ export interface components {
         VerifyEmailRequest: {
             email: string;
             code: string;
+        };
+        VersionResponse: {
+            /** Format: int32 */
+            version: number | string;
         };
     };
     responses: never;

@@ -4,6 +4,7 @@ using Scalar.AspNetCore;
 using TroViec.Api.Features.Admin;
 using TroViec.Api.Features.Auth;
 using TroViec.Api.Features.Me;
+using TroViec.Api.Features.Listings;
 using TroViec.Api.Features.Meta;
 using TroViec.Api.Features.Moderation;
 using TroViec.Api.Features.OwnerProfiles;
@@ -44,6 +45,7 @@ builder.Services
     .AddObjectStorage(builder.Configuration)
     .AddStorage(builder.Configuration)
     .AddDocumentCrypto()
+    .AddListings()
     .AddScanServices(builder.Configuration)
     .AddTrustedProxies(builder.Configuration)
     .AddHealth()
@@ -88,6 +90,7 @@ app.MapAdminUsers();
 app.MapScans();
 app.MapMeta();
 app.MapOwnerProfiles();
+app.MapListings();
 app.MapOwnerModeration();
 app.MapHub<TroViec.Api.Realtime.ScanHub>(TroViec.Api.Realtime.ScanHub.Path).AllowAnonymous();
 
