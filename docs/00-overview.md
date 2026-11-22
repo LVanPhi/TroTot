@@ -111,4 +111,5 @@ Dùng đúng tên trong cột "Code" cho bảng, cột, class, endpoint. Giao di
 | [08-deployment.md](08-deployment.md) | Docker Compose, Caddy, CI/CD, sao lưu, giám sát, biến môi trường |
 | [09-testing.md](09-testing.md) | Chiến lược kiểm thử, kiểm thử AI, kiểm thử tải |
 | [10-implementation-plan.md](10-implementation-plan.md) | Các task theo thứ tự, kèm prompt cho AI agent và tiêu chí xong |
+| [11-product-vision.md](11-product-vision.md) | Tầm nhìn sau đồ án: nền tảng thuê trọ, dự án này là gói Enterprise; không thuộc phạm vi chấm |
 | [../db/migrations/](../db/migrations/) | Lược đồ CSDL thật (32 bảng, migration 0001–0003), đã chạy thử trên PostgreSQL 18 |
