@@ -367,8 +367,21 @@ docker compose -f docker-compose.prod.yml -f docker-compose.tunnel.yml logs clou
 # đặt CLOUDFLARE_TUNNEL_TOKEN và DOMAIN trong .env, dùng --profile token thay cho --profile quick.
 ```
 
-Sau đó chạy migrator và `seed-demo` như bình thường (`docker compose … run --rm migrator`). Kiểm tại máy:
-`http://localhost:8088`.
+Đã chạy thử trên Windows + Docker Desktop (22/11/2026). Thứ tự đầy đủ, luôn kèm `-p troviec-tunnel` để không dùng
+chung volume với stack dev (cùng tên project `troviec`):
+
+```bash
+C="docker compose -p troviec-tunnel -f docker-compose.prod.yml -f docker-compose.tunnel.yml --env-file .env"
+$C --profile quick up -d
+COMPOSE_PROJECT_NAME=troviec-tunnel GARAGE_COMPOSE_FILE=docker-compose.prod.yml GARAGE_ENV_FILE=.env bash garage/init.sh   # chép 4 khóa S3 vào .env
+$C run --rm migrator
+$C run --rm -v "$PWD/../db/seed:/seed:ro" migrator import-units /seed/administrative_units/<tệp>.csv
+$C run --rm -v "$PWD/../db/seed/demo:/seed:ro" -e DEMO_SEED_FILE=/seed/demo.sql migrator seed-demo
+$C --profile quick up -d     # sau khi đặt DOMAIN, App__SiteUrl, Cors__AllowedOrigins, Jwt__Issuer/Audience = URL tunnel
+```
+
+`.env` cho chế độ này: `Sms__Provider=none` (production không cho `console`), `Smtp__Host=mailpit` khi chưa có
+Brevo (xem email tại `http://127.0.0.1:8025`). Kiểm tại máy: `http://localhost:8088`.
 
 Giới hạn (ghi vào báo cáo nếu dùng cho thử nghiệm): máy phải bật suốt thời gian thử nghiệm; số đo k6 (E6) là của
 máy này chứ không phải VPS ARM 2 OCPU; systemd timer (job đêm, sao lưu) thay bằng Task Scheduler/cron của máy;
