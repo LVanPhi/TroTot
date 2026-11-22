@@ -9,7 +9,7 @@ from psycopg_pool import ConnectionPool
 
 from troviec_worker.config import Settings
 from troviec_worker.consumer import process
-from troviec_worker.jobs import scan_job, scoring, text_steps
+from troviec_worker.jobs import scan_job, scoring, signal_steps, text_steps
 from troviec_worker.registry import Registry
 from troviec_worker.streams import (
     DEAD_LETTER,
@@ -27,7 +27,11 @@ KEY = bytes(range(32))
 def _deps(pool: ConnectionPool, llm_fake: bool = False) -> scan_job.JobDeps:
     settings = Settings(database_url="unused", redis_url="unused", llm_fake=llm_fake)  # type: ignore[call-arg]
     text = text_steps.PipelineDeps(load_image=lambda _b, _k: b"", hmac_key=KEY, ocr_engine=lambda _i, _t: "")
-    return scan_job.JobDeps(text=text, scoring=scoring.ScoringDeps(settings, scoring.CriteriaCache(pool)))
+    return scan_job.JobDeps(
+        text=text,
+        scoring=scoring.ScoringDeps(settings, scoring.CriteriaCache(pool)),
+        signals=signal_steps.SignalDeps(load_image=lambda _b, _k: b""),
+    )
 
 
 def _settings() -> Settings:
@@ -205,7 +209,15 @@ def test_listing_scan_does_not_use_the_cache(
 
     scan_job.handle(message, consumer, worker_pool, registry, deps)
 
-    assert sql("SELECT score FROM app.assessments WHERE scan_id = %s", (listing_scan,)) == [(0,)]
+    # Scored from its own text (no copied flags); the poster's new account adds community 0.2 (step 10).
+    ((text_signal, community, flags),) = sql(
+        """
+        SELECT a.text_signal, a.community_signal, (SELECT count(*) FROM app.assessment_flags f WHERE f.assessment_id = a.id)
+        FROM app.assessments a WHERE a.scan_id = %s
+        """,
+        (listing_scan,),
+    )
+    assert (text_signal, round(community, 2), flags) == (0, 0.2, 0)
 
 
 def test_three_failed_deliveries_dead_letter_and_fail_scan(

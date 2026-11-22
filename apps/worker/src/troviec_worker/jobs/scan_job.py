@@ -1,8 +1,7 @@
 """One scan.requested job (docs/05-ai-worker.md). Order at the end: commit DB -> XADD scan-completed -> XACK.
 
-Steps implemented: 1 (load, processing, cache), 2-6 (jobs/text_steps.py), 7 text signal, 11
-aggregate, 12 write.
-Image (8), price (9) and community (10) signals arrive in later tasks and stay NULL until then.
+Steps: 1 (load, processing, cache), 2-6 (jobs/text_steps.py), 7 text signal, 8-10 image, price and
+community signals (jobs/signal_steps.py), 11 aggregate, 12 write.
 """
 
 import logging
@@ -11,8 +10,9 @@ from typing import Any
 
 from psycopg_pool import ConnectionPool
 
-from troviec_worker.jobs import scoring, text_steps
+from troviec_worker.jobs import scoring, signal_steps, text_steps
 from troviec_worker.llm.base import LlmClient
+from troviec_worker.ml import clip
 from troviec_worker.pipeline import aggregate, text_signal
 from troviec_worker.pipeline.budget import Budget
 from troviec_worker.registry import ModelVersion, Registry
@@ -29,6 +29,7 @@ MODEL_UNAVAILABLE_ERROR = "worker.model_unavailable"
 class JobDeps:
     text: text_steps.PipelineDeps
     scoring: scoring.ScoringDeps
+    signals: signal_steps.SignalDeps
 
 
 def load_scan(pool: ConnectionPool, scan_id: int) -> dict[str, Any] | None:
@@ -90,14 +91,15 @@ def handle(
     outcome = text_signal.compute(
         analysis.masked_text, analysis.injections, criteria, llm, budget.llm_timeout(), kind
     )
+    other = signal_steps.compute(pool, scan, analysis, deps.signals, _clip_model_id(registry, deps.signals))
     result = aggregate.score(
         config,
-        {"text": outcome.signal},
+        {"text": outcome.signal, **other.as_dict()},
         flag_count=len(outcome.flags),
         has_injection=any(code == text_signal.INJECTION_CODE for code, _ in outcome.flags),
     )
     llm_model_id = llm_version.id if outcome.llm_used and llm_version else None
-    scoring.write_result(pool, scan_id, aggregator.id, llm_model_id, outcome, result)
+    scoring.write_result(pool, scan_id, aggregator.id, llm_model_id, outcome, result, other)
     _finish(consumer, message, load_scan(pool, scan_id) or scan, replay=False)
 
 
@@ -122,6 +124,17 @@ def _aggregator_config(version: ModelVersion | None) -> aggregate.AggregatorConf
     except (FileNotFoundError, ValueError, KeyError):
         log.error("aggregator version has no implementation", extra={"version": version.version})
         return None
+
+
+def _clip_model_id(registry: Registry, deps: signal_steps.SignalDeps) -> int | None:
+    """CLIP runs only when the active image_embedding version is the one ml/clip.py implements."""
+    version = registry.active("image_embedding")
+    if deps.clip is None or version is None:
+        return None
+    if (version.name, version.version) != (clip.MODEL_NAME, clip.PRETRAINED):
+        log.warning("no implementation for the running image_embedding version; pHash only")
+        return None
+    return version.id
 
 
 def _llm_for_this_scan(

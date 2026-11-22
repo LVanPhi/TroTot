@@ -264,6 +264,10 @@ trên tập train; đầu vào phải tách từ (underthesea `word_tokenize(...
   `clip_model_id` đang chạy): Hamming ≤ 10 **hoặc** cosine ≥ 0,92 (truy vấn ở 03-database.md). Ghi tối đa
   10 khớp vào `assessment_image_matches` (tính đủ cả `hamming_distance` lẫn `clip_similarity` cho mỗi khớp).
 - Ảnh của Kiểm tra tin **không** đưa vào kho đối chiếu (dữ liệu của khách, xóa sau 30 ngày).
+- Ứng viên từ một trong hai truy vấn được tính lại cả hai độ đo trong cùng câu SQL; ảnh chưa có pHash ghi
+  `hamming_distance = 64`, ảnh không cùng `clip_model_id` ghi `clip_similarity = 0` (không khớp theo độ đo đó).
+- Không cài `ml` extra hoặc bản `image_embedding` đang chạy không phải `open_clip/ViT-B-32`/`laion2b_s34b_b79k`
+  → chỉ dùng pHash (ghi log). pHash không bắt được ảnh cắt ~20% (Hamming ≈ 18–22); trường hợp đó dựa vào CLIP.
 
 Lấy mức cao nhất trong các khớp:
 
@@ -287,6 +291,7 @@ Lấy mức cao nhất trong các khớp:
 - Mẫu so sánh: tin phòng `verified`/`expired` cập nhật trong 180 ngày, cùng `is_self_contained` (nếu biết),
   trong bán kính 1 km (lượt `listing`) hoặc cùng `ward_code` (Kiểm tra tin có `claimed_ward_code`).
 - Dưới 10 mẫu → `price_signal = NULL` (không đoán).
+- Kiểm tra tin không chọn phường/xã → không có mẫu so → `price_signal = NULL` (không có tọa độ để so bán kính).
 - `MAD' = max(MAD, 0,05 × median)`; độ lệch `d = (median − giá) / MAD'`;
   `price_signal = clip(d / 2,5, 0, 1)` — giá thấp hơn trung vị từ 2,5 MAD trở lên cho tín hiệu 1,0;
   giá cao hơn trung vị cho 0. Lưu `price_median_vnd`, `price_sample_size`.

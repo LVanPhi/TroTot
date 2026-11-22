@@ -11,7 +11,8 @@ import redis
 from psycopg_pool import ConnectionPool
 
 from troviec_worker.config import Settings
-from troviec_worker.jobs import scan_job, scoring, text_steps
+from troviec_worker.jobs import scan_job, scoring, signal_steps, text_steps
+from troviec_worker.ml import clip
 from troviec_worker.pipeline import identifiers, pii
 from troviec_worker.registry import Registry
 from troviec_worker.storage import make_image_loader
@@ -50,7 +51,16 @@ def build_deps(settings: Settings, pool: ConnectionPool) -> scan_job.JobDeps:
         scan_bucket=settings.s3_bucket_scan_images,
         ner=_optional_ner(),
     )
-    return scan_job.JobDeps(text=text, scoring=scoring.ScoringDeps(settings, scoring.CriteriaCache(pool)))
+    signals = signal_steps.SignalDeps(
+        load_image=text.load_image,
+        listing_bucket=settings.s3_bucket_listing_images,
+        clip=clip.ClipEmbedder(settings.model_dir) if clip.available() else None,
+    )
+    if signals.clip is None:
+        log.info("open_clip not installed: image matching uses pHash only")
+    return scan_job.JobDeps(
+        text=text, scoring=scoring.ScoringDeps(settings, scoring.CriteriaCache(pool)), signals=signals
+    )
 
 
 def _optional_ner() -> pii.NerFn | None:
