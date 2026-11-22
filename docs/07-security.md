@@ -67,7 +67,7 @@ Mỗi mã quyền là một policy cùng tên (`Infrastructure/Auth/Permissions.
 ### Dữ liệu vào
 
 - FluentValidation cho mọi request; giới hạn kích thước body: JSON 1 MB, multipart ảnh 30 MB,
-  giấy tờ 11 MB (cấu hình theo endpoint).
+  giấy tờ 11 MB (cấu hình theo endpoint; `RequestLimits` trả `413 request.too_large` trước khi đọc body).
 - SQL luôn tham số hóa (Dapper); tên cột sắp xếp lấy từ whitelist.
 - **Tệp tải lên**:
   1. Kiểm magic bytes (JPEG `FF D8 FF`, PNG `89 50 4E 47`, WebP `RIFF….WEBP`, PDF `%PDF-`), bỏ qua đuôi file
@@ -92,6 +92,9 @@ Mỗi mã quyền là một policy cùng tên (`Infrastructure/Auth/Permissions.
   <nguồn tile>; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`. Ở dev thêm
   `http://localhost:8080 ws://localhost:8080` vào `connect-src` và `http://listing-images.web.garage.localhost:3902`
   vào `img-src` (API và ảnh khác origin).
+- Nonce sinh mỗi request trong `apps/web/proxy.ts`; vì vậy mọi trang render theo request (`cacheComponents` tắt —
+  Next.js không gắn được nonce vào static shell). `style-src` cho phép `'unsafe-inline'` vì sonner và maplibre chèn
+  style lúc chạy; `script-src` giữ `'nonce-…' 'strict-dynamic'`. Nguồn ảnh thêm qua `NEXT_PUBLIC_IMAGE_ORIGINS`.
 - Header từ Caddy: `Strict-Transport-Security: max-age=31536000; includeSubDomains`,
   `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`,
   `Permissions-Policy: camera=(), microphone=(), geolocation=(self)`, `X-Frame-Options: DENY`, xóa `Server`.

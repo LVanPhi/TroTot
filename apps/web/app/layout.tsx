@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { Be_Vietnam_Pro } from "next/font/google";
 
 import { Toaster } from "sonner";
@@ -34,7 +35,9 @@ export const viewport: Viewport = {
   themeColor: "#0f766e",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // Reading the request makes every page dynamic, so Next.js can stamp the CSP nonce on its scripts (proxy.ts).
+  await headers();
   return (
     <html lang="vi" className={`${beVietnamPro.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col bg-background font-sans text-foreground">

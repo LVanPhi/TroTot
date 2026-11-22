@@ -72,6 +72,7 @@ public static class ErrorCatalog
         ["admin.cannot_remove_own_admin"] = new(409, "Không thể tự thu hồi vai trò quản trị"),
         ["admin.cannot_lock_self"] = new(409, "Không thể tự khóa tài khoản của mình"),
         ["rate_limited"] = new(429, "Thao tác quá nhanh"),
+        ["request.too_large"] = new(413, "Dữ liệu gửi lên quá lớn"),
         ["system.retry_later"] = new(503, "Thử lại sau giây lát"),
         ["system.error"] = new(500, "Có lỗi xảy ra, vui lòng thử lại"),
     };
