@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 
 import { linkClass } from "@/components/domain/form-controls";
 
-import { useMe } from "@/lib/auth/use-auth";
+import { can, useMe } from "@/lib/auth/use-auth";
 
 import { DeleteAccountSection, ProfileSection, SignOutButton } from "./account-sections";
 import { PhoneSection } from "./phone-section";
@@ -44,6 +44,11 @@ export function AccountPage() {
         <Link href="/toi/tin-da-luu" className={linkClass}>
           Tin đã lưu
         </Link>
+        {["listing.moderate", "report.resolve", "appeal.resolve", "owner.verify"].some((p) => can(me, p)) ? (
+          <Link href="/kiem-duyet" className={linkClass}>
+            Kiểm duyệt
+          </Link>
+        ) : null}
       </nav>
       <Section title="Điều kiện đăng tin">
         <PostingChecklist posting={me.posting} />
