@@ -97,6 +97,8 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: apps/worker/uv.lock
+      - name: Tesseract with Vietnamese (OCR tests run the real engine)
+        run: sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends tesseract-ocr tesseract-ocr-vie
       - run: uv sync --frozen
       - run: uv run ruff check .
       - run: uv run ruff format --check .

@@ -86,7 +86,9 @@ flowchart LR
 
 ### 1. Nạp và cache
 
-- Nạp `scans` theo `scanId`; trạng thái `queued` → đặt `processing`.
+- Nạp `scans` theo `scanId`; trạng thái `queued` → đặt `processing`. Bước 1–6 nằm ở `jobs/text_steps.py`
+  (chạy lại được: OCR ghi đè `ocr_text`, định danh dùng `ON CONFLICT DO NOTHING`); cache theo `input_sha256`
+  làm cùng bộ gộp ở T2.4 vì phải chép cả `assessments`.
 - Đầu vào: `quick_check` = `input_text` + ảnh trong `scan_images` (bucket `scan-images`);
   `listing` = `input_text` (bản chụp tiêu đề + mô tả lúc gửi) + ảnh trong `listing_images`
   (bucket `listing-images`) + giá, tọa độ, `is_self_contained` từ bảng con.
@@ -154,7 +156,8 @@ NAME_RE = regex.compile(
     r"\b(?:anh|chị|em|cô|chú|bác|ông|bà|bạn|chủ nhà|a|c)\s+(\p{Lu}\p{Ll}*(?:\s+\p{Lu}\p{Ll}*){0,3})")
 ```
 
-Lớp này phải có test đơn vị với ít nhất 30 câu tiếng Việt thật (đã ẩn danh) — đây là kiểm soát bắt buộc
+Lớp regex (a) luôn chạy; NER (b) là lớp thứ hai, chỉ có khi cài nhóm `ml` (image Docker có, máy dev có thể không) —
+NER lỗi thì vẫn giữ kết quả của lớp regex. Lớp này phải có test đơn vị với ít nhất 30 câu tiếng Việt thật (đã ẩn danh) — đây là kiểm soát bắt buộc
 trước khi gửi bất cứ thứ gì ra LLM bên ngoài (07-security.md).
 
 ### 6. Phát hiện câu chèn
