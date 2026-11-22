@@ -28,6 +28,7 @@ public static class AuthSetup
         services.AddSingleton<UserVersionStore>();
         services.AddSingleton<RefreshTokenStore>();
         services.AddSingleton<OneTimeCodes>();
+        services.AddSingleton<Features.Rental.LeaseCodes>();
         services.AddSingleton<Throttles>();
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();

@@ -60,7 +60,7 @@ Số tiếp nối 01-requirements.md.
 | BR-30 | Ghi nhận thanh toán: chỉ chủ phòng ghi, tổng các lần thu không vượt `total_vnd`; thu đủ thì hóa đơn sang `paid`. Hệ thống **không** nhận, giữ hay chuyển tiền; ảnh chụp chuyển khoản không phải bằng chứng | Trigger + API |
 | BR-31 | Số tài khoản nhận tiền được mã hóa AES-256-GCM, đối chiếu bằng HMAC như `identifiers`. Nếu HMAC trùng một định danh có `identifier_stats.confirmed_report_count > 0` thì tài khoản bị gắn cờ `flagged`: hóa đơn không hiện mã QR, người thuê thấy cảnh báo trung tính, chủ trọ không phát hành được hóa đơn mới cho tới khi cán bộ xem xét. Cán bộ không xem xét tài khoản của chính mình (BR-19) | API |
 | BR-32 | Phòng chỉ sinh được tin khi đang `vacant`. Mỗi phòng có tối đa một tin chưa `removed`. Tin sinh ra là bản nháp và đi qua sàng lọc, kiểm duyệt như mọi tin khác. Khi hợp đồng của phòng sang `active`, nếu tin đang `verified` thì hệ thống đưa tin về `draft` qua `ListingTransitionService`, lý do "Phòng đã cho thuê" | API + `ListingTransitionService` |
-| BR-33 | Hợp đồng `active` sang `ended` khi chủ phòng kết thúc sớm (ngày kết thúc mới ≥ hôm nay) hoặc khi job đêm thấy đã qua `end_date`. Phòng về `vacant` | API + job đêm |
+| BR-33 | Hợp đồng `active` sang `ended` khi chủ phòng bấm kết thúc (có hiệu lực ngay, ghi `ended_at`) hoặc khi job đêm thấy đã tới `end_date` (lịch Việt Nam). Phòng về `vacant` (hoặc `reserved` nếu đã có hợp đồng kế tiếp đang chờ ký) | API + job đêm |
 | BR-34 | Xóa tài khoản (US-106): chủ trọ còn hợp đồng `awaiting_signatures`/`active` → `409 me.active_lease`. Bên thuê xóa tài khoản thì dòng hợp đồng vẫn giữ (là chứng từ của bên kia), tên hiển thị thành "Người thuê đã xóa tài khoản". Hợp đồng và hóa đơn giữ tới 2 năm sau ngày kết thúc rồi job đêm xóa | API + job đêm |
 
 ## User story
@@ -97,7 +97,8 @@ ngày chốt hóa đơn, đơn giá điện (đ/kWh), đơn giá nước (đ/m³
 điều khoản thêm (≤ 3.000 ký tự). Lưu ở `draft`, sửa được kèm `version`.
 
 **US-1102 (M) Gửi hợp đồng**
-- AC1: Không đạt BR-21 → `422 rental.landlord_not_ready` kèm danh sách việc còn thiếu (như `posting.missing`).
+- AC1: Không đạt BR-21 → `422 rental.landlord_not_ready` kèm `missing`: các mục của `posting.missing` (`phone_verification`,
+  `email_verification` / `owner_verification`) cộng `payout_account` (chưa có) hoặc `payout_account_review` (đang bị gắn cờ).
 - AC2: Thành công: chốt `content_sha256`, hợp đồng sang `awaiting_signatures`, phòng sang `reserved`, mỗi email bên thuê
   nhận một link mời hạn 7 ngày. Phản hồi giống nhau dù email đã có tài khoản hay chưa (BR-27).
 - AC3: Phòng đã có hợp đồng chồng thời gian → `409 rental.room_already_leased`.
@@ -249,7 +250,7 @@ Tiền tố `/api/v1`. Quy ước chung, định dạng lỗi và cách phân tr
 | GET, PUT | `/rental/leases/{leaseId}` | chủ nhà | Chi tiết / sửa nháp (kèm `version`) |
 | POST | `/rental/leases/{leaseId}/send` | chủ nhà | `{version}` → `202 {status: "awaiting_signatures", contentSha256}` (BR-21, BR-24, BR-27) |
 | POST | `/rental/leases/{leaseId}/cancel` | chủ nhà | `{version}` → `204` (chỉ `draft`, `awaiting_signatures`) |
-| POST | `/rental/leases/{leaseId}/end` | chủ nhà | `{version, endDate}` → `204` (BR-33) |
+| POST | `/rental/leases/{leaseId}/end` | chủ nhà | `{version}` → `204`: kết thúc ngay (`ended_at` = lúc gọi; `end_date` giữ nguyên vì là điều khoản đã ký) (BR-33) |
 | POST | `/rental/leases/{leaseId}/invoices` | chủ nhà | `{period, electricityEnd?, waterEnd?, extraLines: [{label, amountVnd}]}` → `201 {invoiceId, version}` |
 | GET | `/rental/invoices?leaseId=&status=&period=` | `rental.manage` | Hóa đơn của mình |
 | GET, PUT | `/rental/invoices/{invoiceId}` | chủ nhà | Chi tiết / sửa nháp |
@@ -262,7 +263,7 @@ Tiền tố `/api/v1`. Quy ước chung, định dạng lỗi và cách phân tr
 
 | Phương thức | Đường dẫn | Quyền | Mô tả |
 |---|---|---|---|
-| POST | `/leases/{leaseId}/otp` | bên của hợp đồng (chủ phòng hoặc bên thuê đã nhận lời mời) | Gửi OTP tới email của người gọi → `204`. Hạn mức 3/giờ/người/hợp đồng |
+| POST | `/leases/{leaseId}/otp` | đăng nhập + là bên của hợp đồng (chủ phòng hoặc bên thuê đã nhận lời mời); không phải bên → `404` | Gửi OTP tới email của người gọi → `204`. Hạn mức 3/giờ/người/hợp đồng |
 | POST | `/leases/{leaseId}/confirm` | như trên | `{code, contentSha256}` → `200 {status}` (BR-25) |
 
 ### Người thuê
@@ -405,7 +406,7 @@ Service worker không cache `/api/v1/tenancy/*`, `/api/v1/rental/*` và `/api/v1
 |---|---|---|---|
 | T6.1 Lược đồ thuê trọ | Bảo vệ xong | Migration `0005_rental_core.sql` (kiểu, bảng, trigger, GRANT, seed vai trò, quyền, ngân hàng, `room_listings.room_id`); cập nhật 03-database.md (danh mục bảng, ánh xạ lỗi) | Migration chạy trên CSDL rỗng; test CSDL ở mục Kiểm thử xanh |
 | T6.2 Nhà, phòng, tài khoản nhận tiền | T6.1 | `Features/Rental` (nhà, phòng), `/me/payout-account` (mã hóa + HMAC + gắn cờ), `/moderation/payout-accounts*`, `/meta/banks`, `/rental/rooms/{id}/listing`; đăng ký `accountType: "renter"` | AC US-1001…1005; IDOR |
-| T6.3 Hợp đồng | T6.2 | Soạn, gửi, mời, nhận lời mời, OTP, xác nhận, hủy, kết thúc; mã băm; email qua outbox; đưa tin về `draft` khi `active`; job đêm (hủy quá hạn mời, kết thúc, nhắc 30 ngày); `me.active_lease` | AC E11; test lời mời không lộ email |
-| T6.4 Hóa đơn và VietQR | T6.3 | Lập, phát hành, hủy, ghi nhận thu; VietQR + QRCoder; `/tenancy/invoices*`; nhắc quá hạn; xóa dữ liệu quá hạn lưu (BR-34) | AC E12; test vector VietQR |
+| T6.3 Hợp đồng | T6.2 | Soạn, gửi, mời, nhận lời mời, OTP, xác nhận, hủy, kết thúc; mã băm; email gửi trực tiếp sau khi commit như email xác thực hiện có (lỗi gửi chỉ ghi log); đưa tin về `draft` khi `active`; job đêm (hủy quá hạn mời, kết thúc); `me.active_lease` | AC E11; test lời mời không lộ email |
+| T6.4 Hóa đơn và VietQR | T6.3 | Lập, phát hành, hủy, ghi nhận thu; VietQR + QRCoder; `/tenancy/invoices*`; email từ job đêm (`TroViec.Maintenance` thêm MailKit + `Smtp__*`): nhắc quá hạn và nhắc hợp đồng sắp hết hạn 30 ngày (chuyển từ T6.3); xóa dữ liệu quá hạn lưu (BR-34) | AC E12; test vector VietQR |
 | T6.5 Web | T6.2–T6.4 | Các trang ở mục Giao diện; `make gen-api` | `pnpm lint`, `typecheck`, `test`, `build` sạch |
 | T6.6 Đầu cuối và rà soát | T6.5 | Kịch bản Playwright; bổ sung 07-security.md (hồ sơ đánh giá tác động), `docs/security-review.md` | Nightly xanh 3 lần liên tiếp |

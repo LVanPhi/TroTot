@@ -152,7 +152,8 @@ public sealed class NightlyJobsTests(InfraFixture infra) : IAsyncDisposable
         await db.DisposeAsync();
 
         (await Sql<int>("SELECT count(*)::int FROM app.scans WHERE id = @Id", new { Id = scan })).ShouldBe(1);
-        results.Select(r => r.Name).ShouldBe(["expire_listings", "remove_hidden_listings", "delete_expired_scans", "purge_outbox", "refresh_stats"]);
+        results.Select(r => r.Name).ShouldBe(["expire_listings", "remove_hidden_listings", "delete_expired_scans", "purge_outbox", "refresh_stats",
+            "cancel_expired_lease_invites", "end_finished_leases"]);
         results.ShouldAllBe(r => r.Ok);   // refresh_stats also proves the MAINTAIN grant works for app_maintenance
     }
 

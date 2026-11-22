@@ -72,6 +72,14 @@ public static class MeEndpoints
 
         await using (var tx = await connection.BeginTransactionAsync(ct))
         {
+            // BR-34: a landlord with a lease awaiting signatures or active must end or cancel it first. A tenant may
+            // leave: the lease row stays as the landlord's record and shows "Người thuê đã xóa tài khoản".
+            var openLease = await connection.ExecuteScalarAsync<bool>(new CommandDefinition(
+                """
+                SELECT EXISTS (SELECT 1 FROM app.lease_parties lp JOIN app.leases l ON l.id = lp.lease_id
+                               WHERE lp.user_id = @Id AND lp.role = 'landlord' AND l.status IN ('awaiting_signatures', 'active'))
+                """, new { Id = userId }, tx, cancellationToken: ct));
+            if (openLease) throw new ProblemException("me.active_lease");
             // US-106 AC2: every listing not yet removed → removed; a listing still screening cannot move yet.
             var listings = (await connection.QueryAsync<(long Id, string Status, int Version)>(new CommandDefinition(
                 "SELECT id, status::text, version FROM app.listings WHERE poster_id = @Id AND status <> 'removed' FOR UPDATE",

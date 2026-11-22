@@ -3458,6 +3458,324 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/rental/leases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    status?: string;
+                    roomId?: number | string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LeaseStoreLeaseSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LeaseEndpointsLeaseRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LeaseEndpointsCreatedLease"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rental/leases/{leaseId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    leaseId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LeaseStoreLeaseDetail"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    leaseId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LeaseEndpointsLeaseUpdate"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LeaseEndpointsCreatedLease"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rental/leases/{leaseId}/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    leaseId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LeaseEndpointsVersionRequest"];
+                };
+            };
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LeaseEndpointsSentLease"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rental/leases/{leaseId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    leaseId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LeaseEndpointsVersionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rental/leases/{leaseId}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    leaseId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LeaseEndpointsVersionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/leases/{leaseId}/otp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    leaseId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/leases/{leaseId}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    leaseId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LeaseEndpointsConfirmRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LeaseEndpointsStatusResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/payout-account": {
         parameters: {
             query?: never;
@@ -3588,6 +3906,152 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenancy/invites/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TenancyEndpointsInviteSummary"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenancy/invites/{token}/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TenancyEndpointsClaimedInvite"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenancy/leases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LeaseStoreLeaseSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenancy/leases/{leaseId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    leaseId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LeaseStoreLeaseDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3903,6 +4367,153 @@ export interface components {
             payUnit: string;
             /** Format: int16 */
             hoursPerWeek: number | string;
+        };
+        LeaseEndpointsConfirmRequest: {
+            code: string;
+            contentSha256: string;
+        };
+        LeaseEndpointsCreatedLease: {
+            /** Format: uuid */
+            leaseId: string;
+            /** Format: int32 */
+            version: number | string;
+        };
+        LeaseEndpointsLeaseRequest: {
+            /** Format: int64 */
+            roomId: number | string;
+            tenantEmails: string[];
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string;
+            /** Format: int32 */
+            rentVnd: number | string;
+            /** Format: int32 */
+            depositVnd: number | string;
+            /** Format: int16 */
+            billingDay: number | string;
+            /** Format: int32 */
+            electricityPriceVnd: number | string;
+            /** Format: int32 */
+            waterPriceVnd: number | string;
+            waterUnit: string;
+            services: null | components["schemas"]["LeaseStoreServiceItem"][];
+            extraTerms: null | string;
+        };
+        LeaseEndpointsLeaseUpdate: {
+            /** Format: int64 */
+            roomId: number | string;
+            tenantEmails: string[];
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string;
+            /** Format: int32 */
+            rentVnd: number | string;
+            /** Format: int32 */
+            depositVnd: number | string;
+            /** Format: int16 */
+            billingDay: number | string;
+            /** Format: int32 */
+            electricityPriceVnd: number | string;
+            /** Format: int32 */
+            waterPriceVnd: number | string;
+            waterUnit: string;
+            services: null | components["schemas"]["LeaseStoreServiceItem"][];
+            extraTerms: null | string;
+            /** Format: int32 */
+            version: number | string;
+            fields?: components["schemas"]["LeaseEndpointsLeaseRequest"];
+        };
+        LeaseEndpointsSentLease: {
+            status: string;
+            contentSha256: string;
+            /** Format: int32 */
+            version: number | string;
+        };
+        LeaseEndpointsStatusResponse: {
+            status: string;
+        };
+        LeaseEndpointsVersionRequest: {
+            /** Format: int32 */
+            version: number | string;
+        };
+        LeaseStoreLeaseDetail: {
+            /** Format: uuid */
+            leaseId: string;
+            status: string;
+            /** Format: int64 */
+            roomId: number | string;
+            propertyName: string;
+            streetAddress: string;
+            wardCode: string;
+            roomCode: string;
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string;
+            /** Format: int32 */
+            rentVnd: number | string;
+            /** Format: int32 */
+            depositVnd: number | string;
+            /** Format: int16 */
+            billingDay: number | string;
+            /** Format: int32 */
+            electricityPriceVnd: number | string;
+            /** Format: int32 */
+            waterPriceVnd: number | string;
+            waterUnit: string;
+            services: components["schemas"]["LeaseStoreServiceItem"][];
+            extraTerms: null | string;
+            contentSha256: null | string;
+            /** Format: date-time */
+            sentAt: null | string;
+            /** Format: date-time */
+            inviteExpiresAt: null | string;
+            /** Format: date-time */
+            activatedAt: null | string;
+            /** Format: date-time */
+            endedAt: null | string;
+            /** Format: date-time */
+            cancelledAt: null | string;
+            /** Format: int32 */
+            version: number | string;
+            /** Format: int32 */
+            templateVersion: number | string;
+            parties: components["schemas"]["LeaseStorePartyItem"][];
+        };
+        LeaseStoreLeaseSummary: {
+            /** Format: uuid */
+            leaseId: string;
+            status: string;
+            /** Format: int64 */
+            roomId: number | string;
+            propertyName: string;
+            roomCode: string;
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string;
+            /** Format: int32 */
+            rentVnd: number | string;
+            /** Format: date-time */
+            inviteExpiresAt: null | string;
+            /** Format: int32 */
+            version: number | string;
+        };
+        LeaseStorePartyItem: {
+            role: string;
+            name: string;
+            email: string;
+            claimed: boolean;
+            /** Format: date-time */
+            confirmedAt: null | string;
+            isMe: boolean;
+        };
+        LeaseStoreServiceItem: {
+            label: string;
+            /** Format: int32 */
+            amountVnd: number | string;
         };
         LifecycleResponse: {
             status: string;
@@ -4609,6 +5220,28 @@ export interface components {
             accessToken: string;
             /** Format: int32 */
             expiresIn: number | string;
+        };
+        TenancyEndpointsClaimedInvite: {
+            /** Format: uuid */
+            leaseId: string;
+        };
+        TenancyEndpointsInviteSummary: {
+            /** Format: uuid */
+            leaseId: string;
+            landlordName: string;
+            propertyName: string;
+            streetAddress: string;
+            roomCode: string;
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string;
+            /** Format: int32 */
+            rentVnd: number | string;
+            /** Format: int32 */
+            depositVnd: number | string;
+            /** Format: date-time */
+            expiresAt: string;
         };
         VerifyEmailRequest: {
             email: string;

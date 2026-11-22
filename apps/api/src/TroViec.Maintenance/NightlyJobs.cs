@@ -29,6 +29,8 @@ public sealed class NightlyJobs(NpgsqlDataSource db, IObjectDeleter storage, str
             await RunOneAsync("delete_expired_scans", DeleteExpiredScansAsync, ct),
             await RunOneAsync("purge_outbox", PurgeOutboxAsync, ct),
             await RunOneAsync("refresh_stats", RefreshStatsAsync, ct),
+            await RunOneAsync("cancel_expired_lease_invites", CancelExpiredLeaseInvitesAsync, ct),
+            await RunOneAsync("end_finished_leases", EndFinishedLeasesAsync, ct),
         };
         return results;
     }
@@ -46,6 +48,50 @@ public sealed class NightlyJobs(NpgsqlDataSource db, IObjectDeleter storage, str
             logger.LogError("Job {Job} failed: {ExceptionType}", name, ex.GetType().Name);
             return new JobResult(name, false, 0, ex.GetType().Name);
         }
+    }
+
+    // Room status after lease jobs: occupied with an active lease, reserved with one awaiting signatures, else vacant
+    // (same rule as LeaseStore.RecomputeRoomStatusAsync in the API).
+    private const string RecomputeRooms = """
+        UPDATE app.rooms r
+        SET status = CASE
+                WHEN EXISTS (SELECT 1 FROM app.leases l WHERE l.room_id = r.id AND l.status = 'active') THEN 'occupied'::app.room_status
+                WHEN EXISTS (SELECT 1 FROM app.leases l WHERE l.room_id = r.id AND l.status = 'awaiting_signatures') THEN 'reserved'::app.room_status
+                ELSE 'vacant'::app.room_status END,
+            version = r.version + 1
+        WHERE r.id = ANY(@Rooms) AND r.status IN ('reserved', 'occupied')
+        """;
+
+    /// <summary>BR-26: leases still awaiting signatures after the 7-day invite → cancelled, room freed.</summary>
+    public async Task<long> CancelExpiredLeaseInvitesAsync(CancellationToken ct)
+    {
+        await using var connection = await db.OpenConnectionAsync(ct);
+        await using var tx = await connection.BeginTransactionAsync(ct);
+        var rooms = (await connection.QueryAsync<long>(new CommandDefinition(
+            """
+            UPDATE app.leases SET status = 'cancelled', cancelled_at = now(), version = version + 1
+            WHERE status = 'awaiting_signatures' AND invite_expires_at < now()
+            RETURNING room_id
+            """, transaction: tx, cancellationToken: ct))).ToArray();
+        await connection.ExecuteAsync(new CommandDefinition(RecomputeRooms, new { Rooms = rooms }, tx, cancellationToken: ct));
+        await tx.CommitAsync(ct);
+        return rooms.Length;
+    }
+
+    /// <summary>BR-33: active leases whose end_date (Vietnam calendar) has come → ended, room freed.</summary>
+    public async Task<long> EndFinishedLeasesAsync(CancellationToken ct)
+    {
+        await using var connection = await db.OpenConnectionAsync(ct);
+        await using var tx = await connection.BeginTransactionAsync(ct);
+        var rooms = (await connection.QueryAsync<long>(new CommandDefinition(
+            """
+            UPDATE app.leases SET status = 'ended', ended_at = now(), version = version + 1
+            WHERE status = 'active' AND end_date <= (now() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date
+            RETURNING room_id
+            """, transaction: tx, cancellationToken: ct))).ToArray();
+        await connection.ExecuteAsync(new CommandDefinition(RecomputeRooms, new { Rooms = rooms }, tx, cancellationToken: ct));
+        await tx.CommitAsync(ct);
+        return rooms.Length;
     }
 
     /// <summary>1. verified listings past expires_at → expired (D19).</summary>

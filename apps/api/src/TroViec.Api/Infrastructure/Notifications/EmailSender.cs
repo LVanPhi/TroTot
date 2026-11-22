@@ -102,6 +102,59 @@ public static class EmailTemplates
     }
 }
 
+public static class RentalEmailTemplates
+{
+    /// <summary>BR-27: sent to every invited email; the text does not say whether an account exists.</summary>
+    public static EmailMessage LeaseInvite(string to, string landlordName, string place, string link, DateTime expiresAtUtc) => new(
+        to,
+        "Lời mời xác nhận hợp đồng thuê – Trọ & Việc Sạch",
+        $"""
+        Chào bạn,
+
+        {landlordName} mời bạn xác nhận hợp đồng thuê {place}.
+
+        Mở liên kết dưới đây, đăng nhập hoặc đăng ký bằng đúng địa chỉ email này, rồi đọc kỹ hợp đồng trước khi xác nhận:
+        {link}
+
+        Lời mời hết hạn lúc {Vietnam(expiresAtUtc)}. Nếu bạn không biết về hợp đồng này, hãy bỏ qua email.
+        Trọ & Việc Sạch không nhận hay giữ tiền cọc, tiền thuê của bạn.
+
+        Trọ & Việc Sạch
+        """);
+
+    public static EmailMessage LeaseCode(string to, string fullName, string code) => new(
+        to,
+        "Mã xác nhận hợp đồng thuê – Trọ & Việc Sạch",
+        $"""
+        Chào {fullName},
+
+        Mã xác nhận hợp đồng của bạn là: {code}
+
+        Mã có hiệu lực 10 phút. Chỉ nhập mã khi bạn đã đọc và đồng ý toàn bộ nội dung hợp đồng.
+        Không đưa mã này cho người khác, kể cả chủ trọ.
+
+        Trọ & Việc Sạch
+        """);
+
+    public static EmailMessage LeaseActivated(string to, string fullName, string place, string sha256Hex, string link) => new(
+        to,
+        "Hợp đồng thuê đã có hiệu lực – Trọ & Việc Sạch",
+        $"""
+        Chào {fullName},
+
+        Mọi bên đã xác nhận hợp đồng thuê {place}. Hợp đồng có hiệu lực.
+        Mã băm nội dung (để đối chiếu bản in): {sha256Hex}
+
+        Xem hợp đồng: {link}
+
+        Trọ & Việc Sạch
+        """);
+
+    private static string Vietnam(DateTime utc) =>
+        TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc),
+            TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh")).ToString("HH:mm dd/MM/yyyy");
+}
+
 public enum ListingNotice
 {
     Approved,

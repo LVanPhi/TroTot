@@ -9,6 +9,8 @@ public static class RentalEndpoints
     {
         var rental = app.MapGroup("/api/v1/rental").WithTags("Rental").RequireAuthorization(Permissions.RentalManage);
         rental.MapProperties();
+        rental.MapLeases(app);
         app.MapPayoutAccounts();
+        app.MapTenancy();
     }
 }
