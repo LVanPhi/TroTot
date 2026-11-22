@@ -41,6 +41,9 @@ export function AccountPage() {
         <Link href="/toi/kiem-tra" className={linkClass}>
           Lịch sử kiểm tra tin
         </Link>
+        <Link href="/toi/tin-da-luu" className={linkClass}>
+          Tin đã lưu
+        </Link>
       </nav>
       <Section title="Điều kiện đăng tin">
         <PostingChecklist posting={me.posting} />
