@@ -72,6 +72,9 @@ apps/web/
 Trang bị chặn theo **quyền** (`can("listing.moderate")`), không theo tên vai trò. Vào trang không đủ
 quyền → trang 403 thân thiện, không redirect vòng lặp.
 
+Trang quản lý trọ (`/chu-tro/*`, `/toi/thue/*`, `/loi-moi/[token]`, `/toi/tai-khoan-nhan-tien`) thuộc Giai đoạn 1 sau đồ
+án: [12-rental.md](12-rental.md#giao-diện).
+
 ## Phiên đăng nhập
 
 - Access token giữ trong bộ nhớ (React context / store nhỏ), **không** ghi localStorage.

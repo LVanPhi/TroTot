@@ -36,6 +36,7 @@ Trước khi viết code, trình bày kế hoạch ngắn (file tạo/sửa, tes
 | 3. Tin đăng, kiểm duyệt, tìm kiếm | 7–10 | T3.1–T3.11 | Đủ tính năng MVP |
 | 4. Hoàn thiện | 10–11 | T4.1–T4.5 | **Chốt tính năng** cuối tuần 11 |
 | 5. Thử nghiệm, báo cáo | 12–15 | T5.1–T5.3 | Số liệu thật cho chương 5 |
+| 6. Quản lý trọ (sau bảo vệ) | — | T6.1–T6.6 | Giai đoạn 1 của nền tảng; task và tiêu chí ở [12-rental.md](12-rental.md#task) |
 
 Thu thập và gán nhãn dữ liệu chạy song song từ tuần 2 đến tuần 8 (không cần code, xem T4.5).
 
@@ -645,3 +646,11 @@ ra `research/results/`: lượt kiểm tra nhanh bị xóa sau 30 ngày nên vie
 ### T5.3 Chuẩn bị demo
 QR trên slide trỏ tới `/kiem-tra`; 5 tin mẫu cho kịch bản 7 phút trong đề cương; video demo dự phòng; bản
 `docker compose` chạy được trên laptop phòng khi VPS sự cố.
+
+---
+
+## Giai đoạn 6 — Quản lý trọ (sau bảo vệ)
+
+Không bắt đầu trước buổi bảo vệ. Sáu task T6.1–T6.6 (phụ thuộc, nội dung, tiêu chí xong) nằm ở
+[12-rental.md](12-rental.md#task). Prompt viết theo mẫu chung ở đầu file này, phần "Đọc" trỏ tới các mục của
+12-rental.md mà task cần.

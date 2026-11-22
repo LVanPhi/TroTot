@@ -43,6 +43,7 @@ Search path của mọi role là `app, public`, nên SQL trong code viết `list
 | 2. Tin đăng (10) | `administrative_units`, `listings`, `room_listings`, `job_listings`, `listing_images`, `amenities`, `room_amenities`, `saved_listings`, `reviews`, `listing_transitions` | `room_listings`/`job_listings` là bảng con 1–1 với FK kép `(listing_id, listing_type)`; `listing_transitions` chỉ thêm |
 | 3. Sàng lọc AI (12) | `model_versions`, `listing_embeddings`, `scans`, `scan_images`, `criteria`, `assessments`, `assessment_flags`, `assessment_image_matches`, `identifiers`, `scan_identifiers`, `identifier_stats`, `outbox_messages` | `assessments`, `assessment_flags`, `assessment_image_matches` chỉ thêm; `identifier_stats` chỉ trigger ghi |
 | 4. Kiểm duyệt (4) | `reports`, `appeals`, `owner_documents`, `document_access_logs` | `document_access_logs` chỉ thêm |
+| 5. Thuê trọ (10, Giai đoạn 1 sau đồ án, migration `0005`) | `banks`, `payout_accounts`, `properties`, `rooms`, `rental_room_amenities`, `leases`, `lease_parties`, `invoices`, `invoice_lines`, `payments` | Đặc tả ở [12-rental.md](12-rental.md#cơ-sở-dữ-liệu); `payments` chỉ thêm |
 
 Sơ đồ ERD 13 bảng lõi có trong đề cương; muốn sinh ERD đầy đủ, chạy SchemaSpy hoặc DBeaver trên CSDL dev.
 

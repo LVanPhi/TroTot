@@ -60,7 +60,9 @@ Một tài khoản có thể có nhiều vai trò. Quyền chi tiết: [01-requi
    tra tin (chữ, ảnh) của mọi người dùng tự xóa sau 30 ngày (giữ 1 năm nếu lượt đó bị báo cáo).
 5. **Bên bị ảnh hưởng luôn được kháng nghị** trong 7 ngày, và người xử lý phải khác người đã ra
    quyết định.
-6. **Không cầm tiền.** Không có chức năng thanh toán, đặt cọc hay giữ tiền.
+6. **Không cầm tiền.** MVP đồ án không có chức năng thanh toán, đặt cọc hay giữ tiền. Từ Giai đoạn 1 của nền tảng
+   ([12-rental.md](12-rental.md)) hệ thống được *ghi nhận* thanh toán và hiện mã VietQR tới tài khoản của chủ trọ, nhưng
+   không bao giờ nhận, giữ hay chuyển tiền (không ví, không thu hộ, không giữ cọc hộ).
 
 ## Chỉ tiêu (đặt trước, kết quả thật báo cáo ở chương thực nghiệm)
 
@@ -112,4 +114,5 @@ Dùng đúng tên trong cột "Code" cho bảng, cột, class, endpoint. Giao di
 | [09-testing.md](09-testing.md) | Chiến lược kiểm thử, kiểm thử AI, kiểm thử tải |
 | [10-implementation-plan.md](10-implementation-plan.md) | Các task theo thứ tự, kèm prompt cho AI agent và tiêu chí xong |
 | [11-product-vision.md](11-product-vision.md) | Tầm nhìn sau đồ án: nền tảng thuê trọ, dự án này là gói Enterprise; không thuộc phạm vi chấm |
+| [12-rental.md](12-rental.md) | Đặc tả Giai đoạn 1 sau đồ án: nhà, phòng, hợp đồng, hóa đơn, VietQR (story, CSDL, API, giao diện, task T6.x) |
 | [../db/migrations/](../db/migrations/) | Lược đồ CSDL thật (32 bảng, migration 0001–0003), đã chạy thử trên PostgreSQL 18 |
