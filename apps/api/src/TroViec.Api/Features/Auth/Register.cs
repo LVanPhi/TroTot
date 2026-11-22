@@ -20,8 +20,9 @@ public static class Register
             RuleFor(r => r.Email).NotEmpty().MaximumLength(254).EmailAddress().WithMessage("Email không hợp lệ");
             RuleFor(r => r.Password).NotEmpty().MaximumLength(256);
             RuleFor(r => r.FullName).NotEmpty().MaximumLength(100).WithMessage("Họ tên từ 1 đến 100 ký tự");
-            RuleFor(r => r.AccountType).Must(t => t is "student" or "owner")
-                .WithMessage("Loại tài khoản là student hoặc owner");
+            // renter: người thuê không phải sinh viên (docs/12-rental.md, Phân quyền); any verified email.
+            RuleFor(r => r.AccountType).Must(t => t is "student" or "owner" or "renter")
+                .WithMessage("Loại tài khoản là student, owner hoặc renter");
         }
     }
 

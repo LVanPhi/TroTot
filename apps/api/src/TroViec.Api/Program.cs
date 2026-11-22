@@ -7,6 +7,7 @@ using TroViec.Api.Features.Me;
 using TroViec.Api.Features.Appeals;
 using TroViec.Api.Features.Listings;
 using TroViec.Api.Features.Reports;
+using TroViec.Api.Features.Rental;
 using TroViec.Api.Features.Reviews;
 using TroViec.Api.Features.Search;
 using TroViec.Api.Features.Meta;
@@ -110,6 +111,7 @@ app.MapReports();
 app.MapAppeals();
 app.MapReviewsAndSaved();
 app.MapAudit();
+app.MapRental();
 app.MapHub<TroViec.Api.Realtime.ScanHub>(TroViec.Api.Realtime.ScanHub.Path).AllowAnonymous();
 
 app.Run();

@@ -17,6 +17,18 @@ public static class ListingWriteEndpoints
         var userId = CurrentUser.Id(http.User);
         await using var connection = await db.OpenConnectionAsync(ct);
         await using var tx = await connection.BeginTransactionAsync(ct);
+        var (_, publicId) = await InsertDraftAsync(connection, tx, userId, input, ct);
+        await tx.CommitAsync(ct);
+        return Results.Created($"/api/v1/listings/{publicId}", new CreatedListing(publicId, 1));
+    }
+
+    /// <summary>
+    /// Inserts a draft listing with its child rows and the ∅ → draft transition inside the caller's transaction.
+    /// Shared with the rental feature (a draft generated from a vacant room, docs/12-rental.md BR-32).
+    /// </summary>
+    internal static async Task<(long Id, Guid PublicId)> InsertDraftAsync(
+        NpgsqlConnection connection, NpgsqlTransaction tx, long userId, ListingInput input, CancellationToken ct)
+    {
         await CheckReferencesAsync(connection, tx, input, ct);
         var (id, publicId) = await connection.QuerySingleAsync<(long, Guid)>(new CommandDefinition(
             """
@@ -29,8 +41,7 @@ public static class ListingWriteEndpoints
         await connection.ExecuteAsync(new CommandDefinition(
             "INSERT INTO app.listing_transitions (listing_id, from_status, to_status, actor_id) VALUES (@Id, NULL, 'draft', @UserId)",
             new { Id = id, UserId = userId }, tx, cancellationToken: ct));
-        await tx.CommitAsync(ct);
-        return Results.Created($"/api/v1/listings/{publicId}", new CreatedListing(publicId, 1));
+        return (id, publicId);
     }
 
     /// <summary>Only drafts, with the version the client edited; the type cannot change (it decides the child table).</summary>

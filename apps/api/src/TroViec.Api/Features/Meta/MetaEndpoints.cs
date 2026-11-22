@@ -15,6 +15,9 @@ public static class MetaEndpoints
 
     public sealed record Amenity(string Code, string Name);
 
+    /// <summary>Bank for VietQR transfers (docs/12-rental.md, /meta/banks).</summary>
+    public sealed record Bank(short Id, string Bin, string ShortName, string Name);
+
     public sealed record Criterion(string Code, string Name, string Guidance, string Scope, string? LegalBasis);
 
     public sealed record Campus(string Code, string Name, double Lat, double Lng);
@@ -35,6 +38,7 @@ public static class MetaEndpoints
         meta.MapGet("/provinces/{code}/communes", CommunesOfProvinceAsync).Produces<IReadOnlyList<Commune>>();
         meta.MapGet("/communes", SearchCommunesAsync).Produces<IReadOnlyList<Commune>>();
         meta.MapGet("/amenities", AmenitiesAsync).Produces<IReadOnlyList<Amenity>>();
+        meta.MapGet("/banks", BanksAsync).Produces<IReadOnlyList<Bank>>();
         meta.MapGet("/criteria", CriteriaAsync).Produces<IReadOnlyList<Criterion>>();
         meta.MapGet("/campuses", Campuses).Produces<IReadOnlyList<Campus>>();
     }
@@ -99,6 +103,13 @@ public static class MetaEndpoints
         await using var connection = await db.OpenConnectionAsync(ct);
         return Results.Ok(await connection.QueryAsync<Amenity>(new CommandDefinition(
             "SELECT code, name FROM app.amenities WHERE is_active ORDER BY id", cancellationToken: ct)));
+    }
+
+    public static async Task<IResult> BanksAsync(NpgsqlDataSource db, CancellationToken ct)
+    {
+        await using var connection = await db.OpenConnectionAsync(ct);
+        return Results.Ok(await connection.QueryAsync<Bank>(new CommandDefinition(
+            "SELECT id, bin, short_name, name FROM app.banks WHERE is_active ORDER BY short_name", cancellationToken: ct)));
     }
 
     /// <summary>Active criteria for the "how scoring works" page (transparency, US-203).</summary>

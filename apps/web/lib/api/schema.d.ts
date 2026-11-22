@@ -1567,6 +1567,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/meta/banks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MetaEndpointsBank"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/meta/criteria": {
         parameters: {
             query?: never;
@@ -3184,6 +3219,381 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/rental/properties": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PropertyEndpointsPropertyItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PropertyEndpointsPropertyRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PropertyEndpointsCreated"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rental/properties/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PropertyEndpointsPropertyDetail"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PropertyEndpointsPropertyRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PropertyEndpointsPropertyDetail"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rental/properties/{id}/rooms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PropertyEndpointsRoomRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PropertyEndpointsCreatedRoom"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rental/rooms/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PropertyEndpointsRoomUpdate"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PropertyEndpointsRoomItem"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rental/rooms/{id}/listing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CreatedListing"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/payout-account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PayoutAccountEndpointsPayoutResponse"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PayoutAccountEndpointsPayoutRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PayoutAccountEndpointsPayoutResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/moderation/payout-accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    status?: string;
+                    page?: number | string;
+                    pageSize?: number | string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfFlaggedAccount"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/moderation/payout-accounts/{ownerId}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    ownerId: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PayoutAccountEndpointsReviewRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3688,6 +4098,13 @@ export interface components {
             code: string;
             name: string;
         };
+        MetaEndpointsBank: {
+            /** Format: int16 */
+            id: number | string;
+            bin: string;
+            shortName: string;
+            name: string;
+        };
         MetaEndpointsCampus: {
             code: string;
             name: string;
@@ -3809,6 +4226,15 @@ export interface components {
             /** Format: int64 */
             total: number | string;
         };
+        PagedOfFlaggedAccount: {
+            items: components["schemas"]["PayoutAccountEndpointsFlaggedAccount"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int64 */
+            total: number | string;
+        };
         PagedOfItem: {
             items: components["schemas"]["SearchEndpointsItem"][];
             /** Format: int32 */
@@ -3888,6 +4314,40 @@ export interface components {
             token: string;
             newPassword: string;
         };
+        PayoutAccountEndpointsFlaggedAccount: {
+            /** Format: int64 */
+            ownerId: number | string;
+            ownerName: string;
+            bankShortName: string;
+            accountHint: string;
+            holderName: string;
+            status: string;
+            /** Format: int32 */
+            confirmedReportCount: number | string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: date-time */
+            reviewedAt: null | string;
+            reviewNote: null | string;
+        };
+        PayoutAccountEndpointsPayoutRequest: {
+            /** Format: int16 */
+            bankId: number | string;
+            accountNumber: string;
+            holderName: string;
+        };
+        PayoutAccountEndpointsPayoutResponse: {
+            /** Format: int16 */
+            bankId: number | string;
+            bankShortName: string;
+            accountHint: string;
+            holderName: string;
+            status: string;
+        };
+        PayoutAccountEndpointsReviewRequest: {
+            decision: string;
+            note: string;
+        };
         PhoneOtpRequest: {
             phone: string;
         };
@@ -3898,6 +4358,92 @@ export interface components {
         PostingStatus: {
             allowed: boolean;
             missing: string[];
+        };
+        PropertyEndpointsCreated: {
+            /** Format: int64 */
+            id: number | string;
+        };
+        PropertyEndpointsCreatedRoom: {
+            /** Format: int64 */
+            id: number | string;
+            /** Format: int32 */
+            version: number | string;
+        };
+        PropertyEndpointsPropertyDetail: {
+            /** Format: int64 */
+            id: number | string;
+            name: string;
+            wardCode: string;
+            streetAddress: string;
+            location: components["schemas"]["GeoPoint"];
+            note: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            rooms: components["schemas"]["PropertyEndpointsRoomItem"][];
+        };
+        PropertyEndpointsPropertyItem: {
+            /** Format: int64 */
+            id: number | string;
+            name: string;
+            wardCode: string;
+            streetAddress: string;
+            location: components["schemas"]["GeoPoint"];
+            note: null | string;
+            /** Format: int32 */
+            roomCount: number | string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        PropertyEndpointsPropertyRequest: {
+            name: string;
+            wardCode: string;
+            streetAddress: string;
+            location: components["schemas"]["GeoPoint"];
+            note: null | string;
+        };
+        PropertyEndpointsRoomItem: {
+            /** Format: int64 */
+            id: number | string;
+            /** Format: int64 */
+            propertyId: number | string;
+            code: string;
+            /** Format: int16 */
+            floor: null | number | string;
+            /** Format: double */
+            areaM2: number | string;
+            isSelfContained: boolean;
+            /** Format: int32 */
+            listRentVnd: number | string;
+            status: string;
+            /** Format: int32 */
+            version: number | string;
+            amenityCodes: string[];
+        };
+        PropertyEndpointsRoomRequest: {
+            code: string;
+            /** Format: int16 */
+            floor: null | number | string;
+            /** Format: double */
+            areaM2: number | string;
+            isSelfContained: boolean;
+            /** Format: int32 */
+            listRentVnd: number | string;
+            amenityCodes: null | string[];
+        };
+        PropertyEndpointsRoomUpdate: {
+            code: string;
+            /** Format: int16 */
+            floor: null | number | string;
+            /** Format: double */
+            areaM2: number | string;
+            isSelfContained: boolean;
+            /** Format: int32 */
+            listRentVnd: number | string;
+            amenityCodes: null | string[];
+            status: null | string;
+            /** Format: int32 */
+            version: number | string;
+            fields?: components["schemas"]["PropertyEndpointsRoomRequest"];
         };
         RegisterRequest: {
             email: string;
