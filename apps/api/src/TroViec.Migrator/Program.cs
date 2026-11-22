@@ -1,6 +1,6 @@
 using TroViec.Migrator;
 
-// Usage: migrate | bootstrap-admin | import-units <csv>
+// Usage: migrate | bootstrap-admin | import-units <csv> | seed-demo
 try
 {
     DotEnv.LoadFromRepoRoot();
@@ -30,8 +30,17 @@ try
         case "import-units" when args.Length == 2:
             await UnitImporter.ImportFileAsync(connectionString, args[1], Console.WriteLine, CancellationToken.None);
             break;
+        case "seed-demo":
+            await DemoSeeder.RunAsync(
+                connectionString,
+                Environment.GetEnvironmentVariable("DEMO_SEED_FILE") ?? Path.Combine(RepoRoot.Find(), "db", "seed", "demo", "demo.sql"),
+                Environment.GetEnvironmentVariable("Demo__Password") ?? DemoSeeder.DefaultPassword,
+                (Environment.GetEnvironmentVariable("Auth__StudentEmailDomains") ?? "sv.example.edu.vn").Split(',')[0].Trim(),
+                Console.WriteLine,
+                CancellationToken.None);
+            break;
         default:
-            Console.Error.WriteLine("Usage: TroViec.Migrator [migrate | bootstrap-admin | import-units <csv>]");
+            Console.Error.WriteLine("Usage: TroViec.Migrator [migrate | bootstrap-admin | import-units <csv> | seed-demo]");
             return 2;
     }
     return 0;
