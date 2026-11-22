@@ -10,7 +10,7 @@ import { api, type Schemas } from "@/lib/api/client";
 
 export type Commune = Schemas["MetaEndpointsCommune"];
 
-export const communeLabel = (c: Commune) => `${c.name}, ${c.provinceName}`;
+export const communeLabel = (c: Commune) => (c.provinceName ? `${c.name}, ${c.provinceName}` : c.name);
 
 /**
  * Ward/commune picker (docs/06-frontend.md, Form): accent-insensitive search via /meta/communes?q=,
