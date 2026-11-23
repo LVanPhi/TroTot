@@ -380,6 +380,16 @@ $C run --rm -v "$PWD/../db/seed/demo:/seed:ro" -e DEMO_SEED_FILE=/seed/demo.sql 
 $C --profile quick up -d     # sau khi đặt DOMAIN, App__SiteUrl, Cors__AllowedOrigins, Jwt__Issuer/Audience = URL tunnel
 ```
 
+Volume `models` tạo bằng image worker cũ (trước bản sửa `/models` trong `apps/worker/Dockerfile`) thuộc root, nên
+BGE-M3 và CLIP không tải được (`PermissionError` trong log `worker-embed`, tìm kiếm luôn lùi về full-text). Đổi chủ sở
+hữu một lần (không mất dữ liệu), khởi động lại hai worker, rồi tính embedding cho tin đã có:
+
+```bash
+docker run --rm --user 0 --entrypoint chown -v troviec-tunnel_models:/models <image worker> -R 10001 /models
+$C restart worker worker-embed
+$C exec worker-embed python -m troviec_worker embed-backfill
+```
+
 `.env` cho chế độ này: `Sms__Provider=none` (production không cho `console`), `Smtp__Host=mailpit` khi chưa có
 Brevo (xem email tại `http://127.0.0.1:8025`). Kiểm tại máy: `http://localhost:8088`.
 

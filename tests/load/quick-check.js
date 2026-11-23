@@ -9,7 +9,7 @@ import http from "k6/http";
 import { check, sleep } from "k6";
 import { Trend, Rate } from "k6/metrics";
 
-import { api, API_URL, summaryFile } from "./common.js";
+import { api, API_URL, newVisitor, summaryFile } from "./common.js";
 
 const processing = new Trend("scan_processing_ms", true);
 const failed = new Rate("scan_failed");
@@ -41,14 +41,46 @@ const texts = [
   "Phòng 20m2 có điều hòa, nóng lạnh, giờ giấc tự do, gần chợ. Xem phòng trước khi đặt cọc.",
 ];
 
+// k6 cannot send two files under the same form field from a plain object (an array value is not multipart),
+// and the API reads every part named "images" — so the body is built by hand.
+function utf8(str) {
+  const bin = unescape(encodeURIComponent(str));
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+function multipart(fields, files) {
+  const boundary = `----k6${Math.random().toString(16).slice(2)}`;
+  const CRLF = "\r\n";
+  const chunks = [];
+  for (const [name, value] of fields) {
+    chunks.push(utf8(`--${boundary}${CRLF}Content-Disposition: form-data; name="${name}"${CRLF}${CRLF}${value}${CRLF}`));
+  }
+  for (const [name, filename, data] of files) {
+    chunks.push(utf8(`--${boundary}${CRLF}Content-Disposition: form-data; name="${name}"; filename="${filename}"${CRLF}` +
+      `Content-Type: image/png${CRLF}${CRLF}`));
+    chunks.push(new Uint8Array(data));
+    chunks.push(utf8(CRLF));
+  }
+  chunks.push(utf8(`--${boundary}--${CRLF}`));
+  const body = new Uint8Array(chunks.reduce((n, c) => n + c.length, 0));
+  let offset = 0;
+  for (const c of chunks) {
+    body.set(c, offset);
+    offset += c.length;
+  }
+  return { body: body.buffer, contentType: `multipart/form-data; boundary=${boundary}` };
+}
+
 export default function () {
+  newVisitor();
   // Unique text per iteration: the input_sha256 cache would otherwise answer instantly and hide the real cost.
   const text = `${texts[Math.floor(Math.random() * texts.length)]} #${__VU}-${__ITER}-${Date.now()}`;
-  const created = http.post(
-    `${API_URL}/api/v1/scans`,
-    { text, images: [http.file(shot1, "a.png", "image/png"), http.file(shot2, "b.png", "image/png")] },
-    api("create"),
-  );
+  const form = multipart([["text", text]], [["images", "a.png", shot1], ["images", "b.png", shot2]]);
+  const params = api("create");
+  params.headers["Content-Type"] = form.contentType;
+  const created = http.post(`${API_URL}/api/v1/scans`, form.body, params);
   if (!check(created, { "202 accepted": (r) => r.status === 202 })) return;
   const id = created.json("scanId");
 
