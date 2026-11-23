@@ -18,7 +18,7 @@ trên PostgreSQL 18.7 + PostGIS 3.7.0 + pgvector 0.8.7 (11/2026, gồm `GRANT MA
 
 | Schema | Chủ sở hữu | Nội dung |
 |---|---|---|
-| `app` | `app_migrator` | 32 bảng nghiệp vụ, kiểu enum, hàm, trigger |
+| `app` | `app_migrator` | 32 bảng nghiệp vụ của đồ án + 10 bảng thuê trọ (`0005`, nhóm 5), kiểu enum, hàm, trigger; extension `btree_gist` (trusted, do `0005` tạo trong schema này) |
 | `reporting` | `app_migrator` | Materialized view thống kê, làm mới mỗi đêm |
 | `research` | `app_migrator` | Dữ liệu gán nhãn cho thí nghiệm (tạo ở giai đoạn AI, xem 05-ai-worker.md) |
 | `public` | superuser | Extension `postgis`, `vector`, `pg_trgm`, `unaccent` |
@@ -482,6 +482,10 @@ Lưu ý quyền: `RETURNING` cần quyền `SELECT` trên cột trả về; `app
 | `23505` | `uq_appeals_listing_transition_id` (quyết định này đã được kháng nghị, kể cả đã xử lý xong) | `appeal.already_used` | 409 |
 | `23505` | `uq_owner_documents_sha256` | `document.duplicate` | 409 |
 | `23505` | `uq_model_versions_one_active` | `model.activation_conflict` | 409 |
+| `23505` | `uq_rooms_property_code` | `rental.room_code_taken` | 409 |
+| `23505` | `uq_invoices_lease_period` | `rental.invoice_period_exists` | 409 |
+| `23505` | `uq_payments_reverses_payment_id` | `rental.payment_already_reversed` | 409 |
+| `23P01` | `ex_leases_room_period` | `rental.room_already_leased` | 409 |
 | `23503` | mọi FK | `validation.reference_not_found` | 422 |
 | `23514` | mọi CHECK | `validation.constraint_violated` (kèm tên ràng buộc ở môi trường dev) | 422 |
 | `P0001` | trigger nghiệp vụ, `MESSAGE` là mã lỗi (`appeal.window_closed`, `review.not_student`…) | đúng mã đó | theo bảng mã lỗi |

@@ -17,7 +17,7 @@ public sealed class MigrationRunnerTests(PostgresFixture db)
     }
 
     [Fact]
-    public async Task Run_EmptyDatabase_Creates32TablesJournalAnd3MaterializedViews()
+    public async Task Run_EmptyDatabase_Creates42TablesJournalAnd3MaterializedViews()
     {
         await using var connection = new NpgsqlConnection(db.MigratorConnectionString);
 
@@ -26,7 +26,7 @@ public sealed class MigrationRunnerTests(PostgresFixture db)
         var matViews = await connection.ExecuteScalarAsync<int>("SELECT count(*) FROM pg_matviews");
 
         appTables.ShouldContain("schema_versions");
-        appTables.Count(t => t != "schema_versions").ShouldBe(32);
+        appTables.Count(t => t != "schema_versions").ShouldBe(42);
         matViews.ShouldBe(3);
     }
 
