@@ -37,24 +37,34 @@ public sealed class DocumentCipher
 
     public string ActiveKeyId { get; }
 
-    public byte[] Encrypt(byte[] plain)
+    public byte[] Encrypt(byte[] plain) => Encrypt(plain, null);
+
+    /// <summary>
+    /// With associated data the ciphertext is bound to its context (e.g. "payout-account:{ownerId}"): copied to
+    /// another row it no longer decrypts (docs/12-rental.md, Bảo mật và riêng tư).
+    /// </summary>
+    public byte[] Encrypt(byte[] plain, byte[]? associatedData)
     {
         var blob = new byte[NonceSize + plain.Length + TagSize];
         var nonce = blob.AsSpan(0, NonceSize);
         RandomNumberGenerator.Fill(nonce);
         using var aes = new AesGcm(_keys[ActiveKeyId], TagSize);
-        aes.Encrypt(nonce, plain, blob.AsSpan(NonceSize, plain.Length), blob.AsSpan(NonceSize + plain.Length));
+        aes.Encrypt(nonce, plain, blob.AsSpan(NonceSize, plain.Length), blob.AsSpan(NonceSize + plain.Length), associatedData);
         return blob;
     }
 
     /// <summary>Throws CryptographicException when the blob was altered or the key is wrong.</summary>
-    public byte[] Decrypt(string keyId, byte[] blob)
+    public byte[] Decrypt(string keyId, byte[] blob) => Decrypt(keyId, blob, null);
+
+    /// <summary>associatedData must equal the value given to Encrypt.</summary>
+    public byte[] Decrypt(string keyId, byte[] blob, byte[]? associatedData)
     {
         if (!_keys.TryGetValue(keyId, out var key)) throw new CryptographicException($"unknown document key {keyId}");
         if (blob.Length < NonceSize + TagSize) throw new CryptographicException("document blob too short");
         var plain = new byte[blob.Length - NonceSize - TagSize];
         using var aes = new AesGcm(key, TagSize);
-        aes.Decrypt(blob.AsSpan(0, NonceSize), blob.AsSpan(NonceSize, plain.Length), blob.AsSpan(NonceSize + plain.Length), plain);
+        aes.Decrypt(blob.AsSpan(0, NonceSize), blob.AsSpan(NonceSize, plain.Length), blob.AsSpan(NonceSize + plain.Length), plain,
+            associatedData);
         return plain;
     }
 }

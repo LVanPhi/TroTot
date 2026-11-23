@@ -83,7 +83,9 @@ Số tiếp nối 01-requirements.md.
 - AC3: Đổi số tài khoản không ảnh hưởng hóa đơn đã phát hành: mỗi hóa đơn chụp lại tài khoản lúc phát hành.
 
 **US-1004 (S) Cán bộ xem xét tài khoản bị gắn cờ** — xem hồ sơ chủ, số báo cáo đã xác nhận của định danh (không xem
-số đầy đủ, chỉ gợi ý), rồi chọn *Gỡ cờ* hoặc *Giữ cờ* kèm lý do. Kết quả ghi nhật ký thao tác của cán bộ.
+số đầy đủ, chỉ gợi ý), rồi chọn *Gỡ cờ* hoặc *Giữ cờ* kèm lý do. Lần xem xét gần nhất (người xem xét, thời điểm, lý do) lưu ngay trên
+`payout_accounts`; lịch sử đầy đủ các lần xem xét thuộc `audit_events` của Giai đoạn 3. Chủ trọ lưu lại **đúng số cũ**
+thì giữ nguyên trạng thái và lần xem xét; đổi sang số khác thì xóa lần xem xét và kiểm lại BR-31.
 
 **US-1005 (M) Sinh tin từ phòng trống** — điền sẵn tiêu đề, giá, diện tích, khép kín, tiện nghi, địa chỉ, vị trí từ
 phòng và nhà. Chủ trọ bổ sung mô tả, ảnh rồi gửi duyệt như US-304 (BR-32).
